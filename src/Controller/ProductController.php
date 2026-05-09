@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controller;
 
 use App\Repository\ProductRepository;
@@ -9,9 +11,9 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class ProductController extends AbstractController
 {
-    #[Route('/products', 'app.products')]
+    #[Route('/products', name: 'app.products')]
     public function index(ProductRepository $repository): Response
     {
-        return $this->render("products.twig", ["products" => $repository->findAll()]);
+        return $this->render("product/index.html.twig", ["products" => $repository->findAll()]);
     }
 }

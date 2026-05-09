@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
+use Gedmo\Mapping\Annotation as Gedmo;
 use App\Repository\ProductRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\DBAL\Types\Types;
@@ -18,11 +21,15 @@ class Product
     #[ORM\Column(type: Types::STRING, length: 255, unique: true)]
     private string $name;
 
+    #[ORM\Column(type: Types::STRING, length: 128, unique: true)]
+    #[Gedmo\Slug(fields: ['name'])]
+    private ?string $slug = null;
+
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2)]
     private string $price;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $text = null;
+    private ?string $description = null;
 
     public function getId(): ?int
     {
@@ -41,6 +48,11 @@ class Product
         return $this;
     }
 
+    public function getSlug(): ?string
+    {
+        return $this->slug;
+    }
+
     public function getPrice(): string
     {
         return $this->price;
@@ -53,14 +65,14 @@ class Product
         return $this;
     }
 
-    public function getText(): string
+    public function getDescription(): ?string
     {
-        return $this->text;
+        return $this->description;
     }
 
-    public function setText(string $text): static
+    public function setDescription(string $description): static
     {
-        $this->text = $text;
+        $this->description = $description;
 
         return $this;
     }
