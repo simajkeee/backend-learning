@@ -7,7 +7,7 @@
             <div>
                 <h3>{{ product.name }}</h3>
                 <p>
-                    <a href="products/{{ product.slug }}">{{ product.description }}</a>
+                    <a href="{{ path('app.product', { slug: product.slug }) }}">{{ product.description }}</a>
                 </p>
 
                 <span>{{ product.price }}</span>

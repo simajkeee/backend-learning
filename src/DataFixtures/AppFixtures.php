@@ -18,7 +18,7 @@ class AppFixtures extends Fixture
             $product->setDescription('product text '.$i);
             $product->setPrice((string)mt_rand(10, 100));
             $manager->persist($product);
-            $manager->flush();
         }
+        $manager->flush();
     }
 }
