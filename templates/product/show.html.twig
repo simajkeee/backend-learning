@@ -1,6 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block body %}
+    <a href="{{ path('app.products') }}">Back to the list</a>
     <div>
         <h1>{{ product.name }}</h1>
         <p>{{ product.description }}</p>

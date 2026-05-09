@@ -5,10 +5,10 @@
     <div>
         {% for product in products %}
             <div>
-                <h3>{{ product.name }}</h3>
-                <p>
-                    <a href="{{ path('app.product', { slug: product.slug }) }}">{{ product.description }}</a>
-                </p>
+                <h3>
+                    <a href="{{ path('app.product', { slug: product.slug }) }}">{{ product.name }}</a>
+                </h3>
+                <p>{{ product.description }}</p>
 
                 <span>{{ product.price }}</span>
             </div>
