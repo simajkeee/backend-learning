@@ -24,6 +24,13 @@ class ProductControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextContains('h1', 'product 0');
+    }
 
+    public function testProductDetailPageReturn404WhenProductWithSulgDoesntExist()
+    {
+        static::createClient()
+              ->request('GET', '/products/product-54321012345-not-exist');
+
+        $this->assertResponseStatusCodeSame(404);
     }
 }
