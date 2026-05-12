@@ -8,7 +8,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 class ProductControllerTest extends WebTestCase
 {
-    public function testProductListReturns200AndShowProduct()
+    public function testProductListReturns200AndShowProduct(): void
     {
         static::createClient()
             ->request('GET', '/products');
@@ -17,7 +17,7 @@ class ProductControllerTest extends WebTestCase
         $this->assertSelectorTextContains('h3', 'product 0');
     }
 
-    public function testProductDetailPageReturns200AndTitleIsThere()
+    public function testProductDetailPageReturns200AndTitleIsThere(): void
     {
         static::createClient()
             ->request('GET', '/products/product-0');
@@ -26,7 +26,7 @@ class ProductControllerTest extends WebTestCase
         $this->assertSelectorTextContains('h1', 'product 0');
     }
 
-    public function testProductDetailPageReturn404WhenProductWithSulgDoesntExist()
+    public function testProductDetailPageReturn404WhenProductWithSlugDoesntExist(): void
     {
         static::createClient()
               ->request('GET', '/products/product-54321012345-not-exist');
