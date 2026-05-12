@@ -16,4 +16,14 @@ class ProductControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextContains('h3', 'product 0');
     }
+
+    public function testProductDetailPageReturns200AndTitleIsThere()
+    {
+        static::createClient()
+            ->request('GET', '/products/product-0');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('h1', 'product 0');
+
+    }
 }
