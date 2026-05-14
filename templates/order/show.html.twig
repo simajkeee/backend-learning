@@ -1,0 +1,9 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <div>
+        <h1>Order {{ order.id }} details</h1>
+        <p>Order {{ order.id }} was created successfully for product with title "{{ order.product.name }}"</p>
+        <span>Status: {{ order.status }}</span>
+    </div>
+{% endblock %}
