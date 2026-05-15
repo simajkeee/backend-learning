@@ -33,4 +33,13 @@ class ProductControllerTest extends WebTestCase
 
         $this->assertResponseStatusCodeSame(404);
     }
+
+    public function testProductDetailShowsBuyButton(): void
+    {
+        static::createClient()
+            ->request('GET', '/products/product-0');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('button', 'Buy');
+    }
 }

@@ -7,33 +7,25 @@ namespace App\Controller;
 use App\Entity\Order;
 use App\Entity\Product;
 use Doctrine\ORM\EntityManagerInterface;
-use Exception;
-use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 class OrderController extends AbstractController
 {
-    public function __construct(public EntityManagerInterface $em, public LoggerInterface $logger)
+    public function __construct(public EntityManagerInterface $em)
     {
     }
 
-    #[Route('/products/{slug:product}/orders', name: 'app.order.create')]
+    #[Route('/products/{slug:product}/orders', name: 'app.order.create', methods: ['POST'])]
     public function create(Product $product): Response
     {
-        try {
-            $order = new Order();
-            $order->setProduct($product);
-            $this->em->persist($order);
-            $this->em->flush();
+        $order = new Order();
+        $order->setProduct($product);
+        $this->em->persist($order);
+        $this->em->flush();
 
-            return $this->redirectToRoute('app.order', ['id' => $order->getId()]);
-        } catch (Exception $e) {
-            $this->logger->error("Order was not create for the product id {$product->getId()} the reason: {$e->getMessage()}");
-
-            return $this->redirectToRoute('app.product', ['slug' => $product->getSlug()]);
-        }
+        return $this->redirectToRoute('app.order', ['id' => $order->getId()]);
     }
 
     #[Route('/orders/{id}', 'app.order')]
