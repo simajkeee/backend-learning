@@ -34,4 +34,14 @@ class OrderController extends AbstractController
         return $this->render('order/show.html.twig', ['order' => $order]);
     }
 
+    #[Route('/orders/{id}/pay', name: 'app.order.pay', methods: ['POST'])]
+    public function orderPay(Order $order): Response
+    {
+        $order->markPaid();
+        $this->em->persist($order);
+        $this->em->flush();
+
+        return $this->redirectToRoute('app.order', ['id' => $order->getId()]);
+    }
+
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\OrderStatus;
 use App\Repository\OrderRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -18,12 +19,12 @@ class Order
     #[ORM\GeneratedValue]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(targetEntity: Product::class)]
+    #[ORM\ManyToOne(targetEntity: Product::class, inversedBy: 'orders')]
     #[ORM\JoinColumn(name: 'product_id', referencedColumnName: 'id')]
     private Product $product;
 
-    #[ORM\Column(type: Types::STRING)]
-    private string $status = 'pending';
+    #[ORM\Column(type: Types::STRING, enumType: OrderStatus::class)]
+    private OrderStatus $status = OrderStatus::PENDING;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     #[Gedmo\Timestampable(on: 'create')]
@@ -51,12 +52,12 @@ class Order
         return $this;
     }
 
-    public function getStatus(): string
+    public function getStatus(): OrderStatus
     {
         return $this->status;
     }
 
-    public function setStatus(string $status): static
+    public function setStatus(OrderStatus $status): static
     {
         $this->status = $status;
 
@@ -85,5 +86,14 @@ class Order
         $this->updatedAt = $updatedAt;
 
         return $this;
+    }
+
+    public function markPaid(): void
+    {
+        if ($this->status === OrderStatus::PAID) {
+            return;
+        }
+
+        $this->status = OrderStatus::PAID;
     }
 }
