@@ -52,9 +52,9 @@ class Order
         return $this;
     }
 
-    public function getStatus(): OrderStatus
+    public function getStatus(): string
     {
-        return $this->status;
+        return $this->status->value;
     }
 
     public function setStatus(OrderStatus $status): static

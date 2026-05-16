@@ -13,7 +13,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class OrderController extends AbstractController
 {
-    public function __construct(public EntityManagerInterface $em)
+    public function __construct(private EntityManagerInterface $em)
     {
     }
 
@@ -38,10 +38,8 @@ class OrderController extends AbstractController
     public function orderPay(Order $order): Response
     {
         $order->markPaid();
-        $this->em->persist($order);
         $this->em->flush();
 
         return $this->redirectToRoute('app.order', ['id' => $order->getId()]);
     }
-
 }
