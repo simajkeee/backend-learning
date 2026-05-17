@@ -9,6 +9,7 @@ use App\Repository\OrderRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
+use LogicException;
 
 #[ORM\Entity(repositoryClass: OrderRepository::class)]
 #[ORM\Table('orders')]
@@ -52,9 +53,9 @@ class Order
         return $this;
     }
 
-    public function getStatus(): string
+    public function getStatus(): OrderStatus
     {
-        return $this->status->value;
+        return $this->status;
     }
 
     public function setStatus(OrderStatus $status): static
@@ -90,10 +91,17 @@ class Order
 
     public function markPaid(): void
     {
-        if ($this->status === OrderStatus::PAID) {
-            return;
+        if ($this->status === OrderStatus::PENDING) {
+            $this->status = OrderStatus::PAID;
+        }
+    }
+
+    public function fulfill(): void
+    {
+        if ($this->status !== OrderStatus::PAID) {
+            throw new LogicException("Can't fulfill the order with status {$this->status->value}");
         }
 
-        $this->status = OrderStatus::PAID;
+        $this->status = OrderStatus::FULFILLED;
     }
 }

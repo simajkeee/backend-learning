@@ -4,9 +4,15 @@
     <div>
         <h1>Order {{ order.id }} details</h1>
         <p>Order {{ order.id }} was created successfully for product with title "{{ order.product.name }}"</p>
-        <span>Status: {{ order.status }}</span>
-        <form action="{{ path('app.order.pay', { id: order.id }) }}" method="POST">
-            <button>Mark as paid</button>
-        </form>
+        <span>Status: {{ order.status.value }}</span>
+        {% if order.status.value === 'pending' %}
+            <form action="{{ path('app.order.pay', { id: order.id }) }}" method="POST">
+                <button>Mark as paid</button>
+            </form>
+        {% elseif order.status.value === 'paid' %}
+            <form action="{{ path('app.order.fulfill', { id: order.id }) }}" method="POST">
+                <button>Fulfill</button>
+            </form>
+        {% endif %}
     </div>
 {% endblock %}

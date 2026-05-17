@@ -6,8 +6,10 @@ namespace App\Tests\Controller;
 
 use App\Entity\Order;
 use App\Entity\Product;
+use App\Enum\OrderStatus;
 use App\Repository\OrderRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use LogicException;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 class OrderControllerTest extends WebTestCase
@@ -48,7 +50,7 @@ class OrderControllerTest extends WebTestCase
         $product = $order->getProduct();
 
         $this->assertSelectorTextContains('p', $product->getName());
-        $this->assertSelectorTextContains('span', $order->getStatus());
+        $this->assertSelectorTextContains('span', $order->getStatus()->value);
     }
 
     public function testFakeSlugNotFoundOnOrderCreation(): void
@@ -80,7 +82,7 @@ class OrderControllerTest extends WebTestCase
         $this->assertResponseRedirects("/orders/{$id}");
 
         $order = $this->orderRepo->findOneBy(['id' => $id]);
-        $this->assertSame('paid', $order->getStatus());
+        $this->assertSame(OrderStatus::PAID, $order->getStatus());
     }
 
     public function testFollowRedirectShowsPaidStatus(): void
@@ -118,12 +120,94 @@ class OrderControllerTest extends WebTestCase
 
         $reloadedOrder = $this->orderRepo->find($id);
 
-        $this->assertSame('paid', $reloadedOrder->getStatus());
+        $this->assertSame(OrderStatus::PAID, $reloadedOrder->getStatus());
+    }
+
+    public function testPaidOrderPageShowsFulfillAction(): void
+    {
+        $order = $this->createOrderWithStatus(OrderStatus::PAID);
+
+        self::getClient()
+            ->request('GET', "/orders/{$order->getId()}");
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextSame('button', 'Fulfill');
+    }
+
+    public function testPendingOrderPageDoesntShowFulfillAction(): void
+    {
+        $order = $this->createOrder();
+
+        self::getClient()
+            ->request('GET', "/orders/{$order->getId()}");
+
+        $this->assertResponseIsSuccessful();
+        $this->assertAnySelectorTextNotContains('button', 'Fulfill');
+    }
+
+    public function testOrderIsFulfilledAndRedirected(): void
+    {
+        $order = $this->createOrderWithStatus(OrderStatus::PAID);
+        $id = $order->getId();
+        $this->assertSame(OrderStatus::PAID, $order->getStatus());
+
+        $client = self::getClient();
+        $client->followRedirects();
+        $client->request('POST', "/orders/{$id}/fulfill");
+
+        $order = $this->orderRepo->findOneBy(['id' => $id]);
+
+        $this->assertSame(OrderStatus::FULFILLED, $order->getStatus());
+        $this->assertSelectorTextSame('span', 'Status: fulfilled');
+    }
+
+    public function testLogicExceptionIsThrownPendingToFulfilledStatusChange(): void
+    {
+        $order = $this->createOrder();
+
+        $this->expectException(LogicException::class);
+
+        $order->fulfill();
+    }
+
+    public function testFulfillEndpointReturns500WhenOrderPending(): void
+    {
+        $order = $this->createOrder();
+
+        $client = self::getClient();
+        $client->request('POST', "/orders/{$order->getId()}/fulfill");
+        $response = $client->getResponse();
+
+        $this->assertSame(500, $response->getStatusCode());
+        $this->assertStringContainsString("Can't fulfill the order with status pending", $response->getContent());
+    }
+
+    public function testFulfillEndpointReturns404WithNotExistingOrder(): void
+    {
+        self::getClient()
+            ->request('POST', '/orders/-99999999/fulfill');
+
+        $this->assertResponseStatusCodeSame(404);
     }
 
     private function createOrder(): Order
     {
         $order = new Order();
+        $product = new Product();
+        $product->setName('test');
+        $product->setPrice('10.00');
+        $order->setProduct($product);
+        $this->em->persist($product);
+        $this->em->persist($order);
+        $this->em->flush();
+
+        return $order;
+    }
+
+    private function createOrderWithStatus(OrderStatus $orderStatus): Order
+    {
+        $order = new Order();
+        $order->setStatus($orderStatus);
         $product = new Product();
         $product->setName('test');
         $product->setPrice('10.00');

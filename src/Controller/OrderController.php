@@ -35,9 +35,18 @@ class OrderController extends AbstractController
     }
 
     #[Route('/orders/{id}/pay', name: 'app.order.pay', methods: ['POST'])]
-    public function orderPay(Order $order): Response
+    public function pay(Order $order): Response
     {
         $order->markPaid();
+        $this->em->flush();
+
+        return $this->redirectToRoute('app.order', ['id' => $order->getId()]);
+    }
+
+    #[Route('/orders/{id}/fulfill', name: 'app.order.fulfill', methods: ['POST'])]
+    public function fulfill(Order $order): Response
+    {
+        $order->fulfill();
         $this->em->flush();
 
         return $this->redirectToRoute('app.order', ['id' => $order->getId()]);
