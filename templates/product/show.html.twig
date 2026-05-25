@@ -7,6 +7,7 @@
         <p>{{ product.description }}</p>
         <span>{{ product.price }}</span>
         <form action="{{ path('app.order.create', { slug: product.slug }) }}" method="POST">
+            <input type="hidden" name="token" value="{{ csrf_token('buy-product-' ~ product.id) }}">
             <button>Buy</button>
         </form>
     </div>

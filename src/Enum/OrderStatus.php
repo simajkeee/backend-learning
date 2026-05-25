@@ -9,4 +9,5 @@ enum OrderStatus: string
     case PENDING = 'pending';
     case PAID = 'paid';
     case FULFILLED = 'fulfilled';
+    case REFUNDED = 'refunded';
 }

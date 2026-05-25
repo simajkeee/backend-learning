@@ -47,16 +47,6 @@ class Product
         return $this->orders;
     }
 
-    public function addOrder(Order $order): static
-    {
-        if (!$this->orders->contains($order)) {
-            $this->orders[] = $order;
-            $order->setProduct($this);
-        }
-
-        return $this;
-    }
-
     public function getId(): ?int
     {
         return $this->id;

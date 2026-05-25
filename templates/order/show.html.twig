@@ -7,11 +7,17 @@
         <span>Status: {{ order.status.value }}</span>
         {% if order.status.value === 'pending' %}
             <form action="{{ path('app.order.pay', { id: order.id }) }}" method="POST">
+                <input type="hidden" name="token" value="{{ csrf_token('pay-order-' ~ order.id) }}">
                 <button>Mark as paid</button>
             </form>
         {% elseif order.status.value === 'paid' %}
             <form action="{{ path('app.order.fulfill', { id: order.id }) }}" method="POST">
+                <input type="hidden" name="token" value="{{ csrf_token('fulfill-order-' ~ order.id) }}">
                 <button>Fulfill</button>
+            </form>
+            <form action="{{ path('app.order.refund', { id: order.id }) }}" method="POST">
+                <input type="hidden" name="token" value="{{ csrf_token('refund-order-' ~ order.id) }}">
+                <button>Refund</button>
             </form>
         {% endif %}
     </div>

@@ -36,6 +36,11 @@ class Order
     #[Gedmo\Timestampable(on: 'update')]
     public ?\DateTimeImmutable $updatedAt = null;
 
+    public function __construct(Product $product)
+    {
+        $this->product = $product;
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -46,23 +51,9 @@ class Order
         return $this->product;
     }
 
-    public function setProduct(?Product $product): static
-    {
-        $this->product = $product;
-
-        return $this;
-    }
-
     public function getStatus(): OrderStatus
     {
         return $this->status;
-    }
-
-    public function setStatus(OrderStatus $status): static
-    {
-        $this->status = $status;
-
-        return $this;
     }
 
     public function getCreatedAt(): ?\DateTimeImmutable
@@ -91,9 +82,11 @@ class Order
 
     public function markPaid(): void
     {
-        if ($this->status === OrderStatus::PENDING) {
-            $this->status = OrderStatus::PAID;
+        if ($this->status !== OrderStatus::PENDING) {
+            throw new LogicException("Can't set paid status for the order with status {$this->status->value}");
         }
+
+        $this->status = OrderStatus::PAID;
     }
 
     public function fulfill(): void
@@ -103,5 +96,14 @@ class Order
         }
 
         $this->status = OrderStatus::FULFILLED;
+    }
+
+    public function refund(): void
+    {
+        if ($this->status !== OrderStatus::PAID) {
+            throw new LogicException("Can't refund the order with status {$this->status->value}");
+        }
+
+        $this->status = OrderStatus::REFUNDED;
     }
 }

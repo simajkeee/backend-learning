@@ -105,24 +105,6 @@ class OrderControllerTest extends WebTestCase
         $this->assertResponseStatusCodeSame(404);
     }
 
-    public function testPayingAlreadyPaidOrderIsNoOpAndRedirects(): void
-    {
-        $client = self::getClient();
-
-        $order = $this->createOrder();
-        $id = $order->getId();
-
-        $client->request('POST', "/orders/{$id}/pay");
-        $this->assertResponseRedirects("/orders/{$id}");
-
-        $client->request('POST', "/orders/{$id}/pay");
-        $this->assertResponseRedirects("/orders/{$id}");
-
-        $reloadedOrder = $this->orderRepo->find($id);
-
-        $this->assertSame(OrderStatus::PAID, $reloadedOrder->getStatus());
-    }
-
     public function testPaidOrderPageShowsFulfillAction(): void
     {
         $order = $this->createOrderWithStatus(OrderStatus::PAID);
@@ -192,11 +174,10 @@ class OrderControllerTest extends WebTestCase
 
     private function createOrder(): Order
     {
-        $order = new Order();
         $product = new Product();
         $product->setName('test');
         $product->setPrice('10.00');
-        $order->setProduct($product);
+        $order = new Order($product);
         $this->em->persist($product);
         $this->em->persist($order);
         $this->em->flush();
@@ -206,12 +187,21 @@ class OrderControllerTest extends WebTestCase
 
     private function createOrderWithStatus(OrderStatus $orderStatus): Order
     {
-        $order = new Order();
-        $order->setStatus($orderStatus);
         $product = new Product();
         $product->setName('test');
         $product->setPrice('10.00');
-        $order->setProduct($product);
+        $order = new Order($product);
+
+        if ($orderStatus !== OrderStatus::PENDING) {
+            $order->markPaid();
+        }
+
+        if ($orderStatus === OrderStatus::FULFILLED) {
+            $order->fulfill();
+        } else if ($orderStatus === OrderStatus::REFUNDED) {
+            $order->refund();
+        }
+
         $this->em->persist($product);
         $this->em->persist($order);
         $this->em->flush();
