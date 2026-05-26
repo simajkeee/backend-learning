@@ -13,14 +13,6 @@ use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
  */
 final class OrderFactory extends PersistentObjectFactory
 {
-    /**
-     * @see https://symfony.com/bundles/ZenstruckFoundryBundle/current/index.html#factories-as-services
-     */
-    public function __construct()
-    {
-        parent::__construct();
-    }
-
     public static function withStatus(OrderStatus $orderStatus): Order
     {
         $factory = match($orderStatus) {
@@ -65,9 +57,6 @@ final class OrderFactory extends PersistentObjectFactory
             });
     }
 
-    /**
-     * @see https://symfony.com/bundles/ZenstruckFoundryBundle/current/index.html#model-factories
-     */
     #[\Override]
     protected function defaults(): array|callable
     {
@@ -76,18 +65,5 @@ final class OrderFactory extends PersistentObjectFactory
             'createdAt' => \DateTimeImmutable::createFromMutable(self::faker()->dateTime()),
             'updatedAt' => \DateTimeImmutable::createFromMutable(self::faker()->dateTime()),
         ];
-    }
-
-    /**
-     * @see https://symfony.com/bundles/ZenstruckFoundryBundle/current/index.html#initialization
-     */
-    #[\Override]
-    protected function initialize(): static
-    {
-        return $this
-//             ->afterInstantiate(function(Order $order): void {
-//
-//             })
-        ;
     }
 }
