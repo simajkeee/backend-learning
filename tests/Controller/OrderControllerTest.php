@@ -158,15 +158,6 @@ class OrderControllerTest extends WebTestCase
         $this->assertSelectorTextSame('span', 'Status: fulfilled');
     }
 
-    public function testLogicExceptionIsThrownPendingToFulfilledStatusChange(): void
-    {
-        $order = OrderFactory::new()->create();
-
-        $this->expectException(LogicException::class);
-
-        $order->fulfill();
-    }
-
     public function testFulfillEndpointReturns500WhenOrderPending(): void
     {
         $order = OrderFactory::new()->create();
@@ -259,11 +250,57 @@ class OrderControllerTest extends WebTestCase
     {
         $order = OrderFactory::new()->create();
 
-        self::getClient()
-            ->request('POST', "/orders/{$order->getId()}/pay");
+        $client = self::getClient();
+        $client->request('POST', "/orders/{$order->getId()}/pay");
 
         $order = $this->orderRepo->find($order->getId());
+
         $this->assertSame(OrderStatus::PENDING, $order->getStatus());
+        $response = $client->getResponse();
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertStringContainsString('Invalid CSRF token', $response->getContent());
+    }
+
+    public function testPendingOrderCantBeRefunded(): void
+    {
+        $order = OrderFactory::new()->create();
+
+        $value = 'test-token';
+        $this->setCsrfManagerWithToken($value);
+
+        $client = self::getClient();
+        $client->request('POST', "/orders/{$order->getId()}/refund", ['token' => $value]);
+
+        $this->assertResponseStatusCodeSame(500);
+        $this->assertStringContainsString("Can't refund the order with status pending", $client->getResponse()->getContent());
+    }
+
+    public function testRefundOrderCantBePaid(): void
+    {
+        $order = OrderFactory::withStatus(OrderStatus::REFUNDED);
+
+        $value = 'test-token';
+        $this->setCsrfManagerWithToken($value);
+
+        $client = self::getClient();
+        $client->request('POST', "/orders/{$order->getId()}/pay", ['token' => $value]);
+
+        $this->assertResponseStatusCodeSame(500);
+        $this->assertStringContainsString("Can't set paid status for the order with status refunded", $client->getResponse()->getContent());
+    }
+
+    public function testRefundOrderCantBeFulfilled(): void
+    {
+        $order = OrderFactory::withStatus(OrderStatus::REFUNDED);
+
+        $value = 'test-token';
+        $this->setCsrfManagerWithToken($value);
+
+        $client = self::getClient();
+        $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $value]);
+
+        $this->assertResponseStatusCodeSame(500);
+        $this->assertStringContainsString("Can't fulfill the order with status refunded", $client->getResponse()->getContent());
     }
 
     public function testOrderToPaidWorksWithCsrf(): void
