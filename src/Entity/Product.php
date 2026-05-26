@@ -37,8 +37,10 @@ class Product
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
-    public function __construct()
+    public function __construct(string $name, string $price)
     {
+        $this->name = $name;
+        $this->price = $price;
         $this->orders = new ArrayCollection();
     }
 
@@ -57,13 +59,6 @@ class Product
         return $this->name;
     }
 
-    public function setName(string $name): static
-    {
-        $this->name = $name;
-
-        return $this;
-    }
-
     public function getSlug(): ?string
     {
         return $this->slug;
@@ -72,13 +67,6 @@ class Product
     public function getPrice(): string
     {
         return $this->price;
-    }
-
-    public function setPrice(string $price): static
-    {
-        $this->price = $price;
-
-        return $this;
     }
 
     public function getDescription(): ?string

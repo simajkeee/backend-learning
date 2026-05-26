@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller;
 
-use App\Entity\Order;
-use App\Entity\Product;
 use App\Enum\OrderStatus;
+use App\Factory\OrderFactory;
 use App\Repository\OrderRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use LogicException;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 class OrderControllerTest extends WebTestCase
 {
@@ -28,10 +29,12 @@ class OrderControllerTest extends WebTestCase
 
     public function testProductOrderCreatedAndRedirected(): void
     {
-        self::getClient()
-            ->request('POST', '/products/product-0/orders');
+        $client = self::getClient();
+        $crawler = $client->request('GET', '/products/product-0');
+        $form = $crawler->selectButton('Buy')->form();
+        $client->submit($form);
 
-        $orders = $this->orderRepo->findBy([]);
+        $orders = $this->orderRepo->findAll();
 
         $this->assertCount(1, $orders);
         $this->assertResponseRedirects("/orders/{$orders[0]->getId()}");
@@ -41,9 +44,12 @@ class OrderControllerTest extends WebTestCase
     {
         $client = self::getClient();
         $client->followRedirects();
-        $client->request('POST', '/products/product-0/orders');
 
-        $orders = $this->orderRepo->findBy([]);
+        $crawler = $client->request('GET', '/products/product-0');
+        $form = $crawler->selectButton('Buy')->form();
+        $client->submit($form);
+
+        $orders = $this->orderRepo->findAll();
         $this->assertCount(1, $orders);
 
         $order = $orders[0];
@@ -63,8 +69,9 @@ class OrderControllerTest extends WebTestCase
 
     public function testPendingOrderPageShowsMarkAsPaidAction(): void
     {
+        $order = OrderFactory::new()->create();
         static::getClient()
-            ->request('GET', "/orders/{$this->createOrder()->getId()}");
+            ->request('GET', "/orders/{$order->getId()}");
 
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextSame('button', 'Mark as paid');
@@ -74,10 +81,12 @@ class OrderControllerTest extends WebTestCase
     {
         $client = self::getClient();
 
-        $order = $this->createOrder();
+        $order = OrderFactory::new()->create();
         $id = $order->getId();
 
-        $client->request('POST', "/orders/{$id}/pay");
+        $crawler = $client->request('GET', "/orders/{$id}");
+        $form = $crawler->selectButton('Mark as paid')->form();
+        $client->submit($form);
 
         $this->assertResponseRedirects("/orders/{$id}");
 
@@ -88,11 +97,14 @@ class OrderControllerTest extends WebTestCase
     public function testFollowRedirectShowsPaidStatus(): void
     {
         $client = self::getClient();
-        $order = $this->createOrder();
+        $client->followRedirects();
+
+        $order = OrderFactory::new()->create();
         $id = $order->getId();
 
-        $client->followRedirects();
-        $client->request('POST', "/orders/{$id}/pay");
+        $crawler = $client->request('GET', "/orders/{$id}");
+        $form = $crawler->selectButton('Mark as paid')->form();
+        $client->submit($form);
 
         $this->assertSelectorTextSame('span', 'Status: paid');
     }
@@ -107,7 +119,7 @@ class OrderControllerTest extends WebTestCase
 
     public function testPaidOrderPageShowsFulfillAction(): void
     {
-        $order = $this->createOrderWithStatus(OrderStatus::PAID);
+        $order = OrderFactory::withStatus(OrderStatus::PAID);
 
         self::getClient()
             ->request('GET', "/orders/{$order->getId()}");
@@ -118,7 +130,7 @@ class OrderControllerTest extends WebTestCase
 
     public function testPendingOrderPageDoesntShowFulfillAction(): void
     {
-        $order = $this->createOrder();
+        $order = OrderFactory::new()->create();
 
         self::getClient()
             ->request('GET', "/orders/{$order->getId()}");
@@ -129,13 +141,16 @@ class OrderControllerTest extends WebTestCase
 
     public function testOrderIsFulfilledAndRedirected(): void
     {
-        $order = $this->createOrderWithStatus(OrderStatus::PAID);
+        $order = OrderFactory::withStatus(OrderStatus::PAID);
         $id = $order->getId();
         $this->assertSame(OrderStatus::PAID, $order->getStatus());
 
         $client = self::getClient();
         $client->followRedirects();
-        $client->request('POST', "/orders/{$id}/fulfill");
+
+        $crawler = $client->request('GET', "/orders/{$id}");
+        $form = $crawler->selectButton('Fulfill')->form();
+        $client->submit($form);
 
         $order = $this->orderRepo->findOneBy(['id' => $id]);
 
@@ -145,7 +160,7 @@ class OrderControllerTest extends WebTestCase
 
     public function testLogicExceptionIsThrownPendingToFulfilledStatusChange(): void
     {
-        $order = $this->createOrder();
+        $order = OrderFactory::new()->create();
 
         $this->expectException(LogicException::class);
 
@@ -154,10 +169,16 @@ class OrderControllerTest extends WebTestCase
 
     public function testFulfillEndpointReturns500WhenOrderPending(): void
     {
-        $order = $this->createOrder();
+        $order = OrderFactory::new()->create();
 
         $client = self::getClient();
-        $client->request('POST', "/orders/{$order->getId()}/fulfill");
+
+        $tokenValue = 'test-token';
+        $this->setCsrfManagerWithToken($tokenValue);
+
+        $client->request('POST', "/orders/{$order->getId()}/fulfill", [
+            'token' => $tokenValue,
+        ]);
         $response = $client->getResponse();
 
         $this->assertSame(500, $response->getStatusCode());
@@ -172,40 +193,132 @@ class OrderControllerTest extends WebTestCase
         $this->assertResponseStatusCodeSame(404);
     }
 
-    private function createOrder(): Order
+    public function testRefundableOrderPageShowsRefundAction(): void
     {
-        $product = new Product();
-        $product->setName('test');
-        $product->setPrice('10.00');
-        $order = new Order($product);
-        $this->em->persist($product);
-        $this->em->persist($order);
-        $this->em->flush();
+        $order = OrderFactory::withStatus(OrderStatus::PAID);
 
-        return $order;
+        self::getClient()->request('GET', "/orders/{$order->getId()}");
+
+        $this->assertResponseIsSuccessful();
+        $this->assertAnySelectorTextContains('button', 'Refund');
     }
 
-    private function createOrderWithStatus(OrderStatus $orderStatus): Order
+    public function testNonRefundableOrderPageDoesntShowRefundAction(): void
     {
-        $product = new Product();
-        $product->setName('test');
-        $product->setPrice('10.00');
-        $order = new Order($product);
+        $order = OrderFactory::new()->create();
 
-        if ($orderStatus !== OrderStatus::PENDING) {
-            $order->markPaid();
-        }
+        self::getClient()->request('GET', "/orders/{$order->getId()}");
 
-        if ($orderStatus === OrderStatus::FULFILLED) {
-            $order->fulfill();
-        } else if ($orderStatus === OrderStatus::REFUNDED) {
-            $order->refund();
-        }
+        $this->assertResponseIsSuccessful();
+        $this->assertAnySelectorTextNotContains('button', 'Refund');
+    }
 
-        $this->em->persist($product);
-        $this->em->persist($order);
-        $this->em->flush();
+    public function testOrderStatusIsChangedToRefundedAndRedirects(): void
+    {
+        $order = OrderFactory::withStatus(OrderStatus::PAID);
 
-        return $order;
+        $client = self::getClient();
+
+        $crawler = $client->request('GET', "/orders/{$order->getId()}");
+        $form = $crawler->selectButton('Refund')->form();
+        $client->submit($form);
+
+        $order = $this->orderRepo->find($order->getId());
+        $this->assertSame(OrderStatus::REFUNDED, $order->getStatus());
+
+        $this->assertResponseRedirects("/orders/{$order->getId()}");
+    }
+
+    public function testAfterRefundedActionShowsRefundedStatus(): void
+    {
+        $order = OrderFactory::withStatus(OrderStatus::PAID);
+
+        $client = self::getClient();
+        $client->followRedirects();
+
+        $crawler = $client->request('GET', "/orders/{$order->getId()}");
+        $form = $crawler->selectButton('Refund')->form();
+        $client->submit($form);
+
+        $order = $this->orderRepo->find($order->getId());
+        $this->assertSame(OrderStatus::REFUNDED, $order->getStatus());
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextSame('span', 'Status: refunded');
+    }
+
+    public function testInvalidOrderRefundReturns404(): void
+    {
+        self::getClient()
+            ->request('POST', '/orders/-9999/refund');
+
+        $this->assertResponseStatusCodeSame(404);
+    }
+
+    public function testMissingCsrfDoesntChangeOrderState(): void
+    {
+        $order = OrderFactory::new()->create();
+
+        self::getClient()
+            ->request('POST', "/orders/{$order->getId()}/pay");
+
+        $order = $this->orderRepo->find($order->getId());
+        $this->assertSame(OrderStatus::PENDING, $order->getStatus());
+    }
+
+    public function testOrderToPaidWorksWithCsrf(): void
+    {
+        $order = OrderFactory::new()->create();
+
+        $tokenValue = 'test-token';
+        $this->setCsrfManagerWithToken($tokenValue);
+
+        self::getClient()
+            ->request('POST', "/orders/{$order->getId()}/pay", ['token' => $tokenValue]);
+
+        $order = $this->orderRepo->find($order->getId());
+        $this->assertSame(OrderStatus::PAID, $order->getStatus());
+    }
+
+    public function testOrderToFulfillWorksWithCsrf(): void
+    {
+        $order = OrderFactory::new()->paid()->create();
+
+        $tokenValue = 'test-token';
+        $this->setCsrfManagerWithToken($tokenValue);
+
+        self::getClient()
+            ->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
+
+        $order = $this->orderRepo->find($order->getId());
+        $this->assertSame(OrderStatus::FULFILLED, $order->getStatus());
+    }
+
+    public function testOrderToRefundWorksWithCsrf(): void
+    {
+        $order = OrderFactory::new()->paid()->create();
+
+        $tokenValue = 'test-token';
+        $this->setCsrfManagerWithToken($tokenValue);
+
+        self::getClient()
+            ->request('POST', "/orders/{$order->getId()}/refund", ['token' => $tokenValue]);
+
+        $order = $this->orderRepo->find($order->getId());
+        $this->assertSame(OrderStatus::REFUNDED, $order->getStatus());
+    }
+
+    private function setCsrfManagerWithToken(string $tokenValue): void
+    {
+        $csrfManager = $this->createStub(CsrfTokenManagerInterface::class);
+        $csrfManager
+            ->method('isTokenValid')
+            ->willReturn(true);
+        $csrfManager
+            ->method('getToken')
+            ->willReturnCallback(
+                fn (string $tokenId) => new CsrfToken($tokenId, $tokenValue)
+            );
+        self::getContainer()->set(CsrfTokenManagerInterface::class, $csrfManager);
     }
 }
