@@ -14,11 +14,10 @@ final class ProductFactory extends PersistentObjectFactory
 {
     /**
      * @see https://symfony.com/bundles/ZenstruckFoundryBundle/current/index.html#factories-as-services
-     *
-     * @todo inject services if required
      */
     public function __construct()
     {
+        parent::__construct();
     }
 
     #[\Override]
@@ -29,8 +28,6 @@ final class ProductFactory extends PersistentObjectFactory
 
     /**
      * @see https://symfony.com/bundles/ZenstruckFoundryBundle/current/index.html#model-factories
-     *
-     * @todo add your default values here
      */
     #[\Override]
     protected function defaults(): array|callable
