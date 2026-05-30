@@ -5,6 +5,15 @@
         <h1>Order {{ order.id }} details</h1>
         <p>Order {{ order.id }} was created successfully for product with title "{{ order.product.name }}"</p>
         <span>Status: {{ order.status.value }}</span>
+        {% if order.status.value === 'fulfilled' %}
+            <div>
+                <h3>Fulfilled at:</h3>
+                <div>
+                    <span>date: <time data-testid="fulfilled-date">{{ order.orderFulfillment.createdAt|date("Y-m-d") }}</time></span><br />
+                    <span>time: <time data-testid="fulfilled-time">{{ order.orderFulfillment.createdAt|date("H:i:s") }}</time></span>
+                </div>
+            </div>
+        {% endif %}
         {% if order.status.value === 'pending' %}
             <form action="{{ path('app.order.pay', { id: order.id }) }}" method="POST">
                 <input type="hidden" name="token" value="{{ csrf_token('pay-order-' ~ order.id) }}">

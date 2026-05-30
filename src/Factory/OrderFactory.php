@@ -13,16 +13,19 @@ use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
  */
 final class OrderFactory extends PersistentObjectFactory
 {
-    public static function withStatus(OrderStatus $orderStatus): Order
+    public static function createWithStatus(OrderStatus $orderStatus): Order
     {
-        $factory = match($orderStatus) {
+        return self::new()->withStatus($orderStatus)->create();
+    }
+
+    public function withStatus(OrderStatus $orderStatus): self
+    {
+        return match($orderStatus) {
             OrderStatus::PAID => self::new()->paid(),
             OrderStatus::FULFILLED => self::new()->fulfilled(),
             OrderStatus::REFUNDED => self::new()->refunded(),
             default => self::new(),
         };
-
-        return $factory->create();
     }
 
     #[\Override]

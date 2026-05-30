@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller;
 
+use App\Entity\OrderFulfillment;
 use App\Enum\OrderStatus;
 use App\Factory\OrderFactory;
+use App\Factory\OrderFulfillmentFactory;
+use App\Repository\OrderFulfillmentRepository;
 use App\Repository\OrderRepository;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
-use LogicException;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
@@ -119,7 +122,7 @@ class OrderControllerTest extends WebTestCase
 
     public function testPaidOrderPageShowsFulfillAction(): void
     {
-        $order = OrderFactory::withStatus(OrderStatus::PAID);
+        $order = OrderFactory::createWithStatus(OrderStatus::PAID);
 
         self::getClient()
             ->request('GET', "/orders/{$order->getId()}");
@@ -141,7 +144,7 @@ class OrderControllerTest extends WebTestCase
 
     public function testOrderIsFulfilledAndRedirected(): void
     {
-        $order = OrderFactory::withStatus(OrderStatus::PAID);
+        $order = OrderFactory::createWithStatus(OrderStatus::PAID);
         $id = $order->getId();
         $this->assertSame(OrderStatus::PAID, $order->getStatus());
 
@@ -186,7 +189,7 @@ class OrderControllerTest extends WebTestCase
 
     public function testRefundableOrderPageShowsRefundAction(): void
     {
-        $order = OrderFactory::withStatus(OrderStatus::PAID);
+        $order = OrderFactory::createWithStatus(OrderStatus::PAID);
 
         self::getClient()->request('GET', "/orders/{$order->getId()}");
 
@@ -206,7 +209,7 @@ class OrderControllerTest extends WebTestCase
 
     public function testOrderStatusIsChangedToRefundedAndRedirects(): void
     {
-        $order = OrderFactory::withStatus(OrderStatus::PAID);
+        $order = OrderFactory::createWithStatus(OrderStatus::PAID);
 
         $client = self::getClient();
 
@@ -222,7 +225,7 @@ class OrderControllerTest extends WebTestCase
 
     public function testAfterRefundedActionShowsRefundedStatus(): void
     {
-        $order = OrderFactory::withStatus(OrderStatus::PAID);
+        $order = OrderFactory::createWithStatus(OrderStatus::PAID);
 
         $client = self::getClient();
         $client->followRedirects();
@@ -246,7 +249,7 @@ class OrderControllerTest extends WebTestCase
         $this->assertResponseStatusCodeSame(404);
     }
 
-    public function testMissingCsrfDoesntChangeOrderState(): void
+    public function testMissingCsrfDoesntChangePendingOrderStatusToPaid(): void
     {
         $order = OrderFactory::new()->create();
 
@@ -256,6 +259,21 @@ class OrderControllerTest extends WebTestCase
         $order = $this->orderRepo->find($order->getId());
 
         $this->assertSame(OrderStatus::PENDING, $order->getStatus());
+        $response = $client->getResponse();
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertStringContainsString('Invalid CSRF token', $response->getContent());
+    }
+
+    public function testMissingCsrfDoesntChangePaidOrderStatusToFulfilled(): void
+    {
+        $order = OrderFactory::createWithStatus(OrderStatus::PAID);
+
+        $client = self::getClient();
+        $client->request('POST', "/orders/{$order->getId()}/fulfill");
+
+        $order = $this->orderRepo->find($order->getId());
+
+        $this->assertSame(OrderStatus::PAID, $order->getStatus());
         $response = $client->getResponse();
         $this->assertSame(401, $response->getStatusCode());
         $this->assertStringContainsString('Invalid CSRF token', $response->getContent());
@@ -277,7 +295,7 @@ class OrderControllerTest extends WebTestCase
 
     public function testRefundOrderCantBePaid(): void
     {
-        $order = OrderFactory::withStatus(OrderStatus::REFUNDED);
+        $order = OrderFactory::createWithStatus(OrderStatus::REFUNDED);
 
         $value = 'test-token';
         $this->setCsrfManagerWithToken($value);
@@ -291,7 +309,7 @@ class OrderControllerTest extends WebTestCase
 
     public function testRefundOrderCantBeFulfilled(): void
     {
-        $order = OrderFactory::withStatus(OrderStatus::REFUNDED);
+        $order = OrderFactory::createWithStatus(OrderStatus::REFUNDED);
 
         $value = 'test-token';
         $this->setCsrfManagerWithToken($value);
@@ -317,7 +335,7 @@ class OrderControllerTest extends WebTestCase
         $this->assertSame(OrderStatus::PAID, $order->getStatus());
     }
 
-    public function testOrderToFulfillWorksWithCsrf(): void
+    public function testPaidOrderToFulfillStatusChange(): void
     {
         $order = OrderFactory::new()->paid()->create();
 
@@ -343,6 +361,110 @@ class OrderControllerTest extends WebTestCase
 
         $order = $this->orderRepo->find($order->getId());
         $this->assertSame(OrderStatus::REFUNDED, $order->getStatus());
+    }
+
+    public function testPaidOrderToFulfillStatusChangeCreatesOneOrderFulfillment(): void
+    {
+        $order = OrderFactory::createWithStatus(OrderStatus::PAID);
+
+        $tokenValue = 'test-token';
+        $this->setCsrfManagerWithToken($tokenValue);
+
+        self::getClient()
+            ->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
+
+        $order = $this->orderRepo->find($order->getId());
+        $this->assertSame(OrderStatus::FULFILLED, $order->getStatus());
+
+        $fulfillmentRepo = self::getContainer()->get(OrderFulfillmentRepository::class);
+        $fulfillments = $fulfillmentRepo->findAll();
+
+        $this->assertCount(1, $fulfillments);
+        $relatedOrder = $fulfillments[0]->getRelatedOrder();
+        $this->assertSame($order->getId(), $relatedOrder->getId());
+    }
+
+    public function testOrderDoubleFulfillmentTriggersConstraintViolation(): void
+    {
+        $order = OrderFactory::createWithStatus(OrderStatus::PAID);
+        $orderFulfillment = new OrderFulfillment();
+        $orderFulfillment->setRelatedOrder($order);
+        $this->em->persist($orderFulfillment);
+        $this->em->flush();
+
+        $tokenValue = 'test-token';
+        $this->setCsrfManagerWithToken($tokenValue);
+
+        $fulfillEndpoint = "/orders/{$order->getId()}/fulfill";
+        $client = self::getClient();
+        $client->request('POST', $fulfillEndpoint, ['token' => $tokenValue]);
+        $response = $client->getResponse();
+
+        self::assertSame(500, $response->getStatusCode());
+        self::assertStringContainsString(
+            'UniqueConstraintViolationException',
+            $response->getContent()
+        );
+        self::assertStringContainsString(
+            'duplicate key value violates unique constraint',
+            $response->getContent()
+        );
+    }
+
+    public function testPendingOrderCantBeFulfilledAndOrderFulfillmentNotCreated(): void
+    {
+        $order = OrderFactory::new()->create();
+
+        $tokenValue = 'test-order';
+        $this->setCsrfManagerWithToken($tokenValue);
+
+        $client = self::getClient();
+        $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
+        $response = $client->getResponse();
+
+        $this->assertStringContainsString("Can't fulfill the order with status pending", $response->getContent());
+        $orderFulfillmentRepo = self::getContainer()->get(OrderFulfillmentRepository::class);
+        $fulfillments = $orderFulfillmentRepo->findAll();
+
+        $this->assertCount(0, $fulfillments);
+    }
+
+    public function testRefundedOrderCantBeFulfilledAndOrderFulfillmentNotCreated(): void
+    {
+        $order = OrderFactory::createWithStatus(OrderStatus::REFUNDED);
+
+        $tokenValue = 'test-order';
+        $this->setCsrfManagerWithToken($tokenValue);
+
+        $client = self::getClient();
+        $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
+        $response = $client->getResponse();
+
+        $this->assertStringContainsString("Can't fulfill the order with status refunded", $response->getContent());
+        $orderFulfillmentRepo = self::getContainer()->get(OrderFulfillmentRepository::class);
+        $fulfillments = $orderFulfillmentRepo->findAll();
+
+        $this->assertCount(0, $fulfillments);
+    }
+
+    public function testOrderPageShowsFulfillmentDetailsForOrderWithFulfillmentStatus(): void
+    {
+        $fulfillment = OrderFulfillmentFactory::new()
+                        ->with([
+                            'createdAt' => DateTimeImmutable::createFromFormat('Y-m-d H:i:s', '2026-05-30 13:41:24')
+                        ])
+                        ->withOrderStatus(OrderStatus::FULFILLED)
+                        ->create();
+        $order = $fulfillment->getRelatedOrder();
+        $this->assertSame(OrderStatus::FULFILLED, $order->getStatus());
+
+        $client = self::getClient();
+        $client->request('GET', "/orders/{$order->getId()}");
+
+        $this->assertResponseStatusCodeSame(200);
+        $this->assertSelectorTextSame('span' , 'Status: fulfilled');
+        $this->assertSelectorTextSame('[data-testid="fulfilled-date"]', '2026-05-30');
+        $this->assertSelectorTextSame('[data-testid="fulfilled-time"]', '13:41:24');
     }
 
     private function setCsrfManagerWithToken(string $tokenValue): void

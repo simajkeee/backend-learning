@@ -23,7 +23,7 @@ class OrderTest extends TestCase
 
     public function testRefundedOrderCantBePaidAgain(): void
     {
-        $order = OrderFactory::withStatus(OrderStatus::REFUNDED);
+        $order = OrderFactory::createWithStatus(OrderStatus::REFUNDED);
 
         $this->expectException(LogicException::class);
         $this->expectExceptionMessage("Can't set paid status for the order with status refunded");
@@ -33,7 +33,7 @@ class OrderTest extends TestCase
 
     public function testRefundedOrderCantBeFulfilled(): void
     {
-        $order = OrderFactory::withStatus(OrderStatus::REFUNDED);
+        $order = OrderFactory::createWithStatus(OrderStatus::REFUNDED);
 
         $this->expectException(LogicException::class);
         $this->expectExceptionMessage("Can't fulfill the order with status refunded");

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Order;
+use App\Entity\OrderFulfillment;
 use App\Entity\Product;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -34,9 +35,13 @@ class OrderService
 
     public function fulfill(Order $order): Order
     {
-        $order->fulfill();
-        $this->em->persist($order);
-        $this->em->flush();
+        $this->em->wrapInTransaction(function (EntityManagerInterface $em) use ($order) {
+            $order->fulfill();
+            $fulfillment = new OrderFulfillment();
+            $fulfillment->setRelatedOrder($order);
+
+            $em->persist($fulfillment);
+        });
 
         return $order;
     }

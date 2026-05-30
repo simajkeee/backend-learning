@@ -36,6 +36,9 @@ class Order
     #[Gedmo\Timestampable(on: 'update')]
     public ?\DateTimeImmutable $updatedAt = null;
 
+    #[ORM\OneToOne(mappedBy: 'relatedOrder', cascade: ['persist', 'remove'])]
+    private ?OrderFulfillment $orderFulfillment = null;
+
     public function __construct(Product $product)
     {
         $this->product = $product;
@@ -105,5 +108,22 @@ class Order
         }
 
         $this->status = OrderStatus::REFUNDED;
+    }
+
+    public function getOrderFulfillment(): ?OrderFulfillment
+    {
+        return $this->orderFulfillment;
+    }
+
+    public function setOrderFulfillment(OrderFulfillment $orderFulfillment): static
+    {
+        // set the owning side of the relation if necessary
+        if ($orderFulfillment->getRelatedOrder() !== $this) {
+            $orderFulfillment->setRelatedOrder($this);
+        }
+
+        $this->orderFulfillment = $orderFulfillment;
+
+        return $this;
     }
 }
