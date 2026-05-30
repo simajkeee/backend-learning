@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller;
 
-use App\Entity\OrderFulfillment;
 use App\Enum\OrderStatus;
 use App\Factory\OrderFactory;
-use App\Factory\OrderFulfillmentFactory;
 use App\Repository\OrderFulfillmentRepository;
 use App\Repository\OrderRepository;
 use DateTimeImmutable;
