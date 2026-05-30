@@ -92,13 +92,18 @@ class Order
         $this->status = OrderStatus::PAID;
     }
 
-    public function fulfill(): void
+    public function fulfill(): OrderFulfillment
     {
         if ($this->status !== OrderStatus::PAID) {
             throw new LogicException("Can't fulfill the order with status {$this->status->value}");
         }
 
         $this->status = OrderStatus::FULFILLED;
+
+        $fulfillment = new OrderFulfillment($this);
+        $this->orderFulfillment = $fulfillment;
+
+        return $fulfillment;
     }
 
     public function refund(): void
@@ -113,17 +118,5 @@ class Order
     public function getOrderFulfillment(): ?OrderFulfillment
     {
         return $this->orderFulfillment;
-    }
-
-    public function setOrderFulfillment(OrderFulfillment $orderFulfillment): static
-    {
-        // set the owning side of the relation if necessary
-        if ($orderFulfillment->getRelatedOrder() !== $this) {
-            $orderFulfillment->setRelatedOrder($this);
-        }
-
-        $this->orderFulfillment = $orderFulfillment;
-
-        return $this;
     }
 }

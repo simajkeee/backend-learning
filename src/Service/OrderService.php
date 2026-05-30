@@ -36,9 +36,7 @@ class OrderService
     public function fulfill(Order $order): Order
     {
         $this->em->wrapInTransaction(function (EntityManagerInterface $em) use ($order) {
-            $order->fulfill();
-            $fulfillment = new OrderFulfillment();
-            $fulfillment->setRelatedOrder($order);
+            $fulfillment = $order->fulfill();
 
             $em->persist($fulfillment);
         });

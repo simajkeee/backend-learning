@@ -387,8 +387,7 @@ class OrderControllerTest extends WebTestCase
     public function testOrderDoubleFulfillmentTriggersConstraintViolation(): void
     {
         $order = OrderFactory::createWithStatus(OrderStatus::PAID);
-        $orderFulfillment = new OrderFulfillment();
-        $orderFulfillment->setRelatedOrder($order);
+        $orderFulfillment = new OrderFulfillment($order);
         $this->em->persist($orderFulfillment);
         $this->em->flush();
 
@@ -449,14 +448,12 @@ class OrderControllerTest extends WebTestCase
 
     public function testOrderPageShowsFulfillmentDetailsForOrderWithFulfillmentStatus(): void
     {
-        $fulfillment = OrderFulfillmentFactory::new()
-                        ->with([
-                            'createdAt' => DateTimeImmutable::createFromFormat('Y-m-d H:i:s', '2026-05-30 13:41:24')
-                        ])
-                        ->withOrderStatus(OrderStatus::FULFILLED)
-                        ->create();
-        $order = $fulfillment->getRelatedOrder();
-        $this->assertSame(OrderStatus::FULFILLED, $order->getStatus());
+        $order = OrderFactory::createWithStatus(OrderStatus::FULFILLED);
+        $fulfillment = $order->getOrderFulfillment();
+        self::assertNotNull($fulfillment);
+        $fulfillment->setCreatedAt(DateTimeImmutable::createFromFormat('Y-m-d H:i:s', '2026-05-30 13:41:24'));
+        $this->em->flush();
+        $this->em->clear();
 
         $client = self::getClient();
         $client->request('GET', "/orders/{$order->getId()}");

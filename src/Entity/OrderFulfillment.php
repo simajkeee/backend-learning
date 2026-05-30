@@ -29,6 +29,11 @@ class OrderFulfillment
     #[Gedmo\Timestampable(on: 'update')]
     public ?\DateTimeImmutable $updatedAt = null;
 
+    public function __construct(Order $order)
+    {
+        $this->relatedOrder = $order;
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -37,13 +42,6 @@ class OrderFulfillment
     public function getRelatedOrder(): ?Order
     {
         return $this->relatedOrder;
-    }
-
-    public function setRelatedOrder(Order $relatedOrder): static
-    {
-        $this->relatedOrder = $relatedOrder;
-
-        return $this;
     }
 
     public function getCreatedAt(): ?\DateTimeImmutable
