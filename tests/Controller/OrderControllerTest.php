@@ -384,30 +384,29 @@ class OrderControllerTest extends WebTestCase
         $this->assertSame($order->getId(), $relatedOrder->getId());
     }
 
-    public function testOrderDoubleFulfillmentTriggersConstraintViolation(): void
+    public function testOrderDoubleFulfillmentDoesNotCreateSecondFulfillment(): void
     {
         $order = OrderFactory::createWithStatus(OrderStatus::PAID);
-        $orderFulfillment = new OrderFulfillment($order);
-        $this->em->persist($orderFulfillment);
-        $this->em->flush();
 
         $tokenValue = 'test-token';
         $this->setCsrfManagerWithToken($tokenValue);
 
-        $fulfillEndpoint = "/orders/{$order->getId()}/fulfill";
         $client = self::getClient();
-        $client->request('POST', $fulfillEndpoint, ['token' => $tokenValue]);
-        $response = $client->getResponse();
+        $client->disableReboot();
 
-        self::assertSame(500, $response->getStatusCode());
-        self::assertStringContainsString(
-            'UniqueConstraintViolationException',
-            $response->getContent()
+        $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
+        $this->assertResponseRedirects("/orders/{$order->getId()}");
+
+        $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
+
+        $this->assertResponseStatusCodeSame(500);
+        $this->assertStringContainsString(
+            "Can't fulfill the order with status fulfilled",
+            $client->getResponse()->getContent()
         );
-        self::assertStringContainsString(
-            'duplicate key value violates unique constraint',
-            $response->getContent()
-        );
+
+        $fulfillmentRepo = self::getContainer()->get(OrderFulfillmentRepository::class);
+        $this->assertCount(1, $fulfillmentRepo->findAll());
     }
 
     public function testPendingOrderCantBeFulfilledAndOrderFulfillmentNotCreated(): void

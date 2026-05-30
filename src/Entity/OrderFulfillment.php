@@ -19,7 +19,7 @@ class OrderFulfillment
 
     #[ORM\OneToOne(inversedBy: 'orderFulfillment', cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(name: 'order_id', referencedColumnName: 'id', nullable: false)]
-    private ?Order $relatedOrder = null;
+    private Order $relatedOrder;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     #[Gedmo\Timestampable(on: 'create')]
@@ -39,7 +39,7 @@ class OrderFulfillment
         return $this->id;
     }
 
-    public function getRelatedOrder(): ?Order
+    public function getRelatedOrder(): Order
     {
         return $this->relatedOrder;
     }
