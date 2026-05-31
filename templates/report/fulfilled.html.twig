@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <div>
+        <h1>Fulfilled orders page</h1>
+        {% if report|length > 0 %}
+        <div>
+            {% for row in report %}
+                <hr>
+                <div>
+                    <div>
+                        <h3>Order details</h3>
+                        <span>ID: {{ row.relatedOrder.id }}</span><br />
+                        <span>Status: "{{ row.relatedOrder.status.value }}"</span>
+                    </div>
+                    <div>
+                        <span>Fulfilled at: {{ row.createdAt | date('m-d-Y H:i:s') }}</span>
+                    </div>
+                    <div>
+                        <h3>Product details: </h3>
+                        <span>Name: "{{ row.relatedOrder.product.name }}"</span>
+                        <p>
+                            Description: "{{ row.relatedOrder.product.description}}"
+                        </p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        {% else %}
+            <h3>No report details found</h3>
+        {% endif %}
+    </div>
+{% endblock %}
