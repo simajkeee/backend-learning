@@ -13,7 +13,7 @@ use Symfony\Component\Routing\Attribute\Route;
 class ProductController extends AbstractController
 {
     #[Route('/products', name: 'app.products')]
-    public function index(ProductRepository $repository, \App\Repository\OrderFulfillmentRepository $ofRepo): Response
+    public function index(ProductRepository $repository): Response
     {
         return $this->render('product/index.html.twig', ['products' => $repository->findAll()]);
     }
