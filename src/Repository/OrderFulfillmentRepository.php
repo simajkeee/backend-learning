@@ -25,7 +25,8 @@ class OrderFulfillmentRepository extends ServiceEntityRepository
                 ->addSelect('o')
                 ->innerJoin('o.product', 'p')
                 ->addSelect('p')
-                ->orderBy('f.createdAt', 'DESC');
+                ->orderBy('f.createdAt', 'DESC')
+                ->addOrderBy('f.id', 'DESC');
 
         return $qb->getQuery()
                   ->getResult();

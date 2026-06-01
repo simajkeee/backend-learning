@@ -21,11 +21,11 @@ class OrderFulfillment
     #[ORM\JoinColumn(name: 'order_id', referencedColumnName: 'id', nullable: false)]
     private Order $relatedOrder;
 
-    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, precision: 6)]
     #[Gedmo\Timestampable(on: 'create')]
     public ?\DateTimeImmutable $createdAt = null;
 
-    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, precision: 6)]
     #[Gedmo\Timestampable(on: 'update')]
     public ?\DateTimeImmutable $updatedAt = null;
 

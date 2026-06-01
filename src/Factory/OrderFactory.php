@@ -6,6 +6,7 @@ namespace App\Factory;
 
 use App\Entity\Order;
 use App\Enum\OrderStatus;
+use DateTimeImmutable;
 use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
 
 /**
@@ -65,8 +66,8 @@ final class OrderFactory extends PersistentObjectFactory
     {
         return [
             'product' => ProductFactory::new(),
-            'createdAt' => \DateTimeImmutable::createFromMutable(self::faker()->dateTime()),
-            'updatedAt' => \DateTimeImmutable::createFromMutable(self::faker()->dateTime()),
+            'createdAt' => DateTimeImmutable::createFromMutable(self::faker()->dateTime()),
+            'updatedAt' => DateTimeImmutable::createFromMutable(self::faker()->dateTime()),
         ];
     }
 }

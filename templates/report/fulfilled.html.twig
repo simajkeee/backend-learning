@@ -10,8 +10,8 @@
                 <div>
                     <div>
                         <h3>Order details</h3>
-                        <span>ID: {{ row.relatedOrder.id }}</span><br />
-                        <span>Status: "{{ row.relatedOrder.status.value }}"</span>
+                        <span data-testid="order-id" data-order-id="{{ row.relatedOrder.id }}">ID: {{ row.relatedOrder.id }}</span><br />
+                        <span data-testid="order-{{ row.relatedOrder.id }}-status">Status: "{{ row.relatedOrder.status.value }}"</span>
                     </div>
                     <div>
                         <span>Fulfilled at: {{ row.createdAt | date('m-d-Y H:i:s') }}</span>
