@@ -19,13 +19,21 @@ class ReportsControllerTest extends WebTestCase
 
     public function testReportShowsFulfilledOrder(): void
     {
-        $order = OrderFactory::createWithStatus(OrderStatus::FULFILLED);
+        $orderFulfilled = OrderFactory::createWithStatus(OrderStatus::FULFILLED);
+        $orderPaid = OrderFactory::createWithStatus(OrderStatus::PAID);
+        $orderRefunded = OrderFactory::createWithStatus(OrderStatus::REFUNDED);
+        $orderPending = OrderFactory::createWithStatus(OrderStatus::PENDING);
 
         $client = self::getClient();
         $client->request('GET', '/reports/orders/fulfilled');
 
         $this->assertResponseIsSuccessful();
-        $this->assertSelectorTextContains('[data-testid="order-' . $order->getId() . '-status"]', 'Status: "fulfilled"');
+
+        $pattern = "[data-testid='order-%d-status']";
+        $this->assertSelectorTextContains(sprintf($pattern, $orderFulfilled->getId()), 'Status: "fulfilled"');
+        $this->assertSelectorNotExists(sprintf($pattern, $orderPaid->getId()));
+        $this->assertSelectorNotExists(sprintf($pattern, $orderRefunded->getId()));
+        $this->assertSelectorNotExists(sprintf($pattern, $orderPending->getId()));
     }
 
     public function testReportDoesntShowPendingOrder(): void
