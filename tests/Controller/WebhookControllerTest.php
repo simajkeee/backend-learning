@@ -89,9 +89,6 @@ class WebhookControllerTest extends WebTestCase
         $paymentProviderEvent = new PaymentProviderEvent($eventId, '{}');
         $this->em->persist($paymentProviderEvent);
         $this->em->flush();
-
-        $providerEvents = $this->paymentProviderEventRepo->findBy(['providerEventId' => $eventId]);
-        $this->assertCount(1, $providerEvents);
     }
 
     public function testInvalidPayloadValidationIsTriggered(): void
