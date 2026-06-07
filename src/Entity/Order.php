@@ -9,7 +9,6 @@ use App\Repository\OrderRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
-use LogicException;
 
 #[ORM\Entity(repositoryClass: OrderRepository::class)]
 #[ORM\Table('orders')]
@@ -30,7 +29,6 @@ class Order
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     #[Gedmo\Timestampable(on: 'create')]
     public ?\DateTimeImmutable $createdAt = null;
-
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     #[Gedmo\Timestampable(on: 'update')]
@@ -85,8 +83,8 @@ class Order
 
     public function markPaid(): void
     {
-        if ($this->status !== OrderStatus::PENDING) {
-            throw new LogicException("Can't set paid status for the order with status {$this->status->value}");
+        if (OrderStatus::PENDING !== $this->status) {
+            throw new \LogicException("Can't set paid status for the order with status {$this->status->value}");
         }
 
         $this->status = OrderStatus::PAID;
@@ -94,8 +92,8 @@ class Order
 
     public function fulfill(): OrderFulfillment
     {
-        if ($this->status !== OrderStatus::PAID) {
-            throw new LogicException("Can't fulfill the order with status {$this->status->value}");
+        if (OrderStatus::PAID !== $this->status) {
+            throw new \LogicException("Can't fulfill the order with status {$this->status->value}");
         }
 
         $this->status = OrderStatus::FULFILLED;
@@ -108,8 +106,8 @@ class Order
 
     public function refund(): void
     {
-        if ($this->status !== OrderStatus::PAID) {
-            throw new LogicException("Can't refund the order with status {$this->status->value}");
+        if (OrderStatus::PAID !== $this->status) {
+            throw new \LogicException("Can't refund the order with status {$this->status->value}");
         }
 
         $this->status = OrderStatus::REFUNDED;
