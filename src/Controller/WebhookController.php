@@ -25,10 +25,6 @@ class WebhookController extends AbstractController
     #[Route('/webhooks/fake-payment', name: 'app.webhooks.fake-payment', methods: [Request::METHOD_POST])]
     public function fakePayment(#[MapRequestPayload] PaymentEvent $paymentEvent): JsonResponse
     {
-        if ($paymentEvent->status !== PaymentStatus::PAID->value) {
-            return $this->json('Unprocessable request', 422);
-        }
-
         try {
             $this->paymentService->processPaid(
                 $paymentEvent->orderId,

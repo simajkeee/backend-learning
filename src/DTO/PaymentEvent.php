@@ -28,13 +28,4 @@ class PaymentEvent
 
         return $paymentEvent;
     }
-
-    public function __toArray(): array
-    {
-        return [
-            'providerEventId' => $this->providerEventId,
-            'orderId' => $this->orderId,
-            'status' => $this->status,
-        ];
-    }
 }
