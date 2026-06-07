@@ -38,7 +38,7 @@ class PaymentProviderEvent
         return $this->id;
     }
 
-    public function getProviderEventId(): ?int
+    public function getProviderEventId(): ?string
     {
         return $this->providerEventId;
     }

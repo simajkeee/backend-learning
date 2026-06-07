@@ -6,7 +6,9 @@ namespace App\Service;
 
 use App\Entity\Order;
 use App\Entity\PaymentProviderEvent;
+use App\Enum\OrderStatus;
 use App\Repository\OrderRepository;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 
 class PaymentService
@@ -19,22 +21,30 @@ class PaymentService
 
     public function processPaid(int $orderId, string $providerEventId, string $payload): void
     {
-        $this->em->wrapInTransaction(function (EntityManagerInterface $em) use (
-            $orderId,
-            $providerEventId,
-            $payload,
-        ): void {
-            /** @var Order $order */
-            $order = $this->orderRepo->find($orderId);
-            if (null === $order) {
-                throw new \RuntimeException("Order {$orderId} not found");
-            }
+        try {
+            $this->em->wrapInTransaction(function (EntityManagerInterface $em) use (
+                $orderId,
+                $providerEventId,
+                $payload,
+            ): void {
+                $em->persist(new PaymentProviderEvent(
+                    $providerEventId, $payload
+                ));
 
-            $order->markPaid();
+                /** @var Order $order */
+                $order = $this->orderRepo->find($orderId);
+                if (null === $order) {
+                    throw new \RuntimeException("Order {$orderId} not found");
+                }
 
-            $paymentProviderEvent = new PaymentProviderEvent($providerEventId, $payload);
+                if (OrderStatus::PAID === $order->getStatus()) {
+                    return;
+                }
 
-            $em->persist($paymentProviderEvent);
-        });
+                $order->markPaid();
+            });
+        } catch (UniqueConstraintViolationException $e) {
+            // do nothing
+        }
     }
 }

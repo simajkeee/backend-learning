@@ -38,7 +38,7 @@ class WebhookController extends AbstractController
 
             return $this->json(['paid' => true]);
         } catch (\RuntimeException|\LogicException $e) {
-            return $this->json(['paid' => false, 'reason' => $e->getMessage()]);
+            return $this->json(['paid' => false, 'reason' => $e->getMessage()], 422);
         }
     }
 }
