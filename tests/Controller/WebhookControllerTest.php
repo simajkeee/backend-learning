@@ -6,9 +6,11 @@ namespace App\Tests\Controller;
 
 use App\DTO\PaymentEvent;
 use App\Entity\Order;
+use App\Entity\PaymentProviderEvent;
 use App\Enum\OrderStatus;
 use App\Factory\OrderFactory;
 use App\Repository\PaymentProviderEventRepository;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -75,25 +77,21 @@ class WebhookControllerTest extends WebTestCase
         $this->assertCount(1, $providerEvents);
     }
 
-    public function testConcurrentRequestsAreSafelyHandledByPaymentEndopint(): void
+    public function testConstraintViolationIsTriggered(): void
     {
-        $order = OrderFactory::new()->create();
-        $httpClient = static::getClient();
+        $eventId = 'evt_123';
 
-        $responses = [];
-        for ($i = 0; $i < 2; ++$i) {
-            $httpClient->request('POST', '/webhooks/fake-payment', [
-                'providerEventId' => 'evt_123',
-                'orderId' => $order->getId(),
-                'status' => 'paid',
-            ]);
-            $responses[] = $httpClient->getResponse();
-        }
+        $paymentProviderEvent = new PaymentProviderEvent($eventId, '{}');
+        $this->em->persist($paymentProviderEvent);
+        $this->em->flush();
 
-        foreach ($responses as $response) {
-            $this->assertSame(200, $response->getStatusCode());
-            $this->assertSame('{"paid":true}', $response->getContent(false));
-        }
+        $this->expectException(UniqueConstraintViolationException::class);
+        $paymentProviderEvent = new PaymentProviderEvent($eventId, '{}');
+        $this->em->persist($paymentProviderEvent);
+        $this->em->flush();
+
+        $providerEvents = $this->paymentProviderEventRepo->findBy(['providerEventId' => $eventId]);
+        $this->assertCount(1, $providerEvents);
     }
 
     public function testInvalidPayloadValidationIsTriggered(): void

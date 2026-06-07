@@ -27,10 +27,6 @@ class PaymentService
                 $providerEventId,
                 $payload,
             ): void {
-                $em->persist(new PaymentProviderEvent(
-                    $providerEventId, $payload
-                ));
-
                 /** @var Order $order */
                 $order = $this->orderRepo->find($orderId);
                 if (null === $order) {
@@ -42,6 +38,10 @@ class PaymentService
                 }
 
                 $order->markPaid();
+
+                $em->persist(new PaymentProviderEvent(
+                    $providerEventId, $payload
+                ));
             });
         } catch (UniqueConstraintViolationException $e) {
             // do nothing
