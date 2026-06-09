@@ -445,8 +445,8 @@ class OrderControllerTest extends WebTestCase
 
     public function testOrderPageShowsFulfillmentDetailsForOrderWithFulfillmentStatus(): void
     {
-        $order = OrderFactory::createWithStatus(OrderStatus::FULFILLED);
-        $fulfillment = $order->getOrderFulfillment();
+        $order = OrderFactory::createWithStatus(OrderStatus::PAID);
+        $fulfillment = $order->fulfill();
         self::assertNotNull($fulfillment);
         $fulfillment->setCreatedAt(DateTimeImmutable::createFromFormat('Y-m-d H:i:s', '2026-05-30 13:41:24'));
         $this->em->flush();

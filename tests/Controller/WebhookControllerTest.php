@@ -51,7 +51,12 @@ class WebhookControllerTest extends WebTestCase
         $this->assertNotNull($providerEvent);
         $this->assertSame($providerEventId, $providerEvent->getProviderEventId());
         $this->assertNotEmpty($providerEvent->getPayload());
-        $this->assertSame(json_encode((array) PaymentEvent::fromArray($payload)), $providerEvent->getPayload());
+
+        $paymentEvent = new PaymentEvent();
+        $paymentEvent->providerEventId = $payload['providerEventId'];
+        $paymentEvent->orderId = $payload['orderId'];
+        $paymentEvent->status = $payload['status'];
+        $this->assertSame(json_encode($paymentEvent), $providerEvent->getPayload());
     }
 
     public function testDuplicateEventIsSafeAndDoesntCreateDoublePaymentProviderEvent(): void

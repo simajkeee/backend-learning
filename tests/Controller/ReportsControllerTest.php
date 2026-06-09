@@ -7,7 +7,7 @@ namespace App\Tests\Controller;
 use App\Entity\Order;
 use App\Enum\OrderStatus;
 use App\Factory\OrderFactory;
-use DateTimeImmutable;
+use App\Repository\OrderFulfillmentRepository;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 class ReportsControllerTest extends WebTestCase
@@ -78,22 +78,22 @@ class ReportsControllerTest extends WebTestCase
         $this->assertSelectorTextContains('h3', 'No report details found');
     }
 
-
     public function testReportOrdersSortedCorrectly(): void
     {
         $counter = 0;
-        $orders = OrderFactory::new()
-                    ->withStatus(OrderStatus::FULFILLED)
-                    ->afterInstantiate(function (Order $order) use (&$counter): void {
-                        $order->getOrderFulfillment()->setCreatedAt(
-                            new DateTimeImmutable(sprintf('2026-06-01 12:%02d:00', $counter))
-                        );
+        OrderFactory::new()
+            ->withStatus(OrderStatus::PAID)
+            ->afterInstantiate(function (Order $order) use (&$counter): void {
+                $fulfillment = $order->fulfill();
 
-                        $counter++;
-                    })
-                    ->many(10)
-                    ->create();
+                $fulfillment->setCreatedAt(
+                    new \DateTimeImmutable(sprintf('2026-06-01 12:%02d:00', $counter))
+                );
 
+                ++$counter;
+            })
+            ->many(10)
+            ->create();
 
         $client = self::getClient();
         $crawler = $client->request('GET', '/reports/orders/fulfilled');
@@ -104,16 +104,24 @@ class ReportsControllerTest extends WebTestCase
             ->filter("[data-testid='order-id']")
             ->each(static fn ($node) => (int) $node->attr('data-order-id'));
 
-        usort($orders, static function (Order $a, Order $b) {
-            $dateCompare = $b->getOrderFulfillment()->getCreatedAt()
-                <=> $a->getOrderFulfillment()->getCreatedAt();
-            if ($dateCompare !== 0) {
+        $orderFulfillmentRepo = self::getContainer()->get(OrderFulfillmentRepository::class);
+        $fulfillments = $orderFulfillmentRepo->createQueryBuilder('f')
+            ->select('f.createdAt')
+            ->innerjoin('f.relatedOrder', 'o')
+            ->addSelect('o.id as orderId')
+            ->getQuery()
+            ->getResult();
+
+        usort($fulfillments, static function (array $a, array $b) {
+            $dateCompare = $b['createdAt']
+                <=> $a['createdAt'];
+            if (0 !== $dateCompare) {
                 return $dateCompare;
             }
 
-            return $b->getId() <=> $a->getId();
+            return $b['orderId'] <=> $a['orderId'];
         });
 
-        $this->assertSame(array_map(static fn ($o) => $o->getId(), $orders), $pageOrderIds);
+        $this->assertSame(array_map(static fn ($o) => $o['orderId'], $fulfillments), $pageOrderIds);
     }
 }

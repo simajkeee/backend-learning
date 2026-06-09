@@ -18,14 +18,4 @@ class PaymentEvent
 
     #[Assert\Choice(callback: [PaymentStatus::class, 'values'])]
     public string $status = '';
-
-    public static function fromArray(array $data): self
-    {
-        $paymentEvent = new self();
-        $paymentEvent->providerEventId = $data['providerEventId'];
-        $paymentEvent->orderId = $data['orderId'];
-        $paymentEvent->status = $data['status'];
-
-        return $paymentEvent;
-    }
 }
