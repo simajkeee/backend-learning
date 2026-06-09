@@ -50,6 +50,11 @@ class Order
         return $this->id;
     }
 
+    public function isPaid(): bool
+    {
+        return OrderStatus::PAID === $this->status;
+    }
+
     public function getProduct(): Product
     {
         return $this->product;

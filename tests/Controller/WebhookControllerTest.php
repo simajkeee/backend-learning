@@ -45,7 +45,7 @@ class WebhookControllerTest extends WebTestCase
         $orderRepo = $this->em->getRepository(Order::class);
         $order = $orderRepo->find($order->getId());
         $this->assertNotNull($order);
-        $this->assertSame(OrderStatus::PAID, $order->getStatus());
+        $this->assertTrue($order->isPaid());
 
         $providerEvent = $this->paymentProviderEventRepo->findOneBy(['providerEventId' => $providerEventId]);
         $this->assertNotNull($providerEvent);

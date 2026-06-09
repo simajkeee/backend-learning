@@ -144,7 +144,7 @@ class OrderControllerTest extends WebTestCase
     {
         $order = OrderFactory::createWithStatus(OrderStatus::PAID);
         $id = $order->getId();
-        $this->assertSame(OrderStatus::PAID, $order->getStatus());
+        $this->assertTrue($order->isPaid());
 
         $client = self::getClient();
         $client->followRedirects();

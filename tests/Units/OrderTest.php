@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Tests\Units;
 
 use App\Enum\OrderStatus;
+use App\Exception\OrderNotFulfillableException;
+use App\Exception\OrderNotPayableException;
+use App\Exception\OrderNotRefundableException;
 use App\Factory\OrderFactory;
-use LogicException;
 use PHPUnit\Framework\TestCase;
 
 class OrderTest extends TestCase
@@ -15,7 +17,7 @@ class OrderTest extends TestCase
     {
         $order = OrderFactory::new()->create();
 
-        $this->expectException(LogicException::class);
+        $this->expectException(OrderNotRefundableException::class);
         $this->expectExceptionMessage("Can't refund the order with status pending");
 
         $order->refund();
@@ -25,7 +27,7 @@ class OrderTest extends TestCase
     {
         $order = OrderFactory::createWithStatus(OrderStatus::REFUNDED);
 
-        $this->expectException(LogicException::class);
+        $this->expectException(OrderNotPayableException::class);
         $this->expectExceptionMessage("Can't set paid status for the order with status refunded");
 
         $order->markPaid();
@@ -35,7 +37,7 @@ class OrderTest extends TestCase
     {
         $order = OrderFactory::createWithStatus(OrderStatus::REFUNDED);
 
-        $this->expectException(LogicException::class);
+        $this->expectException(OrderNotFulfillableException::class);
         $this->expectExceptionMessage("Can't fulfill the order with status refunded");
 
         $order->fulfill();
