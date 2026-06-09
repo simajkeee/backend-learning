@@ -7,6 +7,7 @@ namespace App\Service;
 use App\Entity\Order;
 use App\Entity\PaymentProviderEvent;
 use App\Enum\OrderStatus;
+use App\Exception\OrderNotFoundException;
 use App\Repository\OrderRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -30,7 +31,7 @@ class PaymentService
                 /** @var Order $order */
                 $order = $this->orderRepo->find($orderId);
                 if (null === $order) {
-                    throw new \RuntimeException("Order {$orderId} not found");
+                    throw OrderNotFoundException::withDefaultMsg($orderId);
                 }
 
                 if (OrderStatus::PAID === $order->getStatus()) {

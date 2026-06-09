@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\DTO\PaymentEvent;
-use App\Enum\PaymentStatus;
 use App\Service\PaymentService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -25,16 +24,12 @@ class WebhookController extends AbstractController
     #[Route('/webhooks/fake-payment', name: 'app.webhooks.fake-payment', methods: [Request::METHOD_POST])]
     public function fakePayment(#[MapRequestPayload] PaymentEvent $paymentEvent): JsonResponse
     {
-        try {
-            $this->paymentService->processPaid(
-                $paymentEvent->orderId,
-                $paymentEvent->providerEventId,
-                $this->serializer->serialize($paymentEvent, 'json')
-            );
+        $this->paymentService->processPaid(
+            $paymentEvent->orderId,
+            $paymentEvent->providerEventId,
+            $this->serializer->serialize($paymentEvent, 'json')
+        );
 
-            return $this->json(['paid' => true]);
-        } catch (\RuntimeException|\LogicException $e) {
-            return $this->json(['paid' => false, 'reason' => $e->getMessage()], 422);
-        }
+        return $this->json(['paid' => true]);
     }
 }

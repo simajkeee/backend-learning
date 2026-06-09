@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Enum\OrderStatus;
+use App\Exception\OrderNotFulfillableException;
+use App\Exception\OrderNotPayableException;
+use App\Exception\OrderNotRefundableException;
 use App\Repository\OrderRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -84,7 +87,7 @@ class Order
     public function markPaid(): void
     {
         if (OrderStatus::PENDING !== $this->status) {
-            throw new \LogicException("Can't set paid status for the order with status {$this->status->value}");
+            throw OrderNotPayableException::withDefaultMsg($this->status);
         }
 
         $this->status = OrderStatus::PAID;
@@ -93,7 +96,7 @@ class Order
     public function fulfill(): OrderFulfillment
     {
         if (OrderStatus::PAID !== $this->status) {
-            throw new \LogicException("Can't fulfill the order with status {$this->status->value}");
+            throw OrderNotFulfillableException::withDefaultMsg($this->status);
         }
 
         $this->status = OrderStatus::FULFILLED;
@@ -107,7 +110,7 @@ class Order
     public function refund(): void
     {
         if (OrderStatus::PAID !== $this->status) {
-            throw new \LogicException("Can't refund the order with status {$this->status->value}");
+            throw OrderNotRefundableException::withDefaultMsg($this->status);
         }
 
         $this->status = OrderStatus::REFUNDED;
