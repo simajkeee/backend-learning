@@ -16,9 +16,9 @@ class ExceptionMapper
     {
         return match (get_class($exception)) {
             OrderNotFoundException::class => new HttpResponse(404, 'order_not_found'),
-            OrderNotFulfillableException::class => new HttpResponse(422, 'order_not_fulfillable'),
-            OrderNotPayableException::class => new HttpResponse(422, 'order_not_payable'),
-            OrderNotRefundableException::class => new HttpResponse(422, 'order_not_refundable'),
+            OrderNotFulfillableException::class => new HttpResponse(409, 'order_not_fulfillable'),
+            OrderNotPayableException::class => new HttpResponse(409, 'order_not_payable'),
+            OrderNotRefundableException::class => new HttpResponse(409, 'order_not_refundable'),
             default => null,
         };
     }

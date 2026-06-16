@@ -63,7 +63,7 @@ class ExceptionListenerTest extends TestCase
         $response = $event->getResponse();
 
         $this->assertNotNull($response);
-        $this->assertSame(422, $response->getStatusCode());
+        $this->assertSame(409, $response->getStatusCode());
         $this->assertStringContainsString('"order_not_fulfillable"', $response->getContent());
     }
 
@@ -87,7 +87,7 @@ class ExceptionListenerTest extends TestCase
         $response = $event->getResponse();
 
         $this->assertNotNull($response);
-        $this->assertSame(422, $response->getStatusCode());
+        $this->assertSame(409, $response->getStatusCode());
         $this->assertStringContainsString('"order_not_payable"', $response->getContent());
     }
 
@@ -111,7 +111,7 @@ class ExceptionListenerTest extends TestCase
         $response = $event->getResponse();
 
         $this->assertNotNull($response);
-        $this->assertSame(422, $response->getStatusCode());
+        $this->assertSame(409, $response->getStatusCode());
         $this->assertStringContainsString('"order_not_refundable"', $response->getContent());
     }
 

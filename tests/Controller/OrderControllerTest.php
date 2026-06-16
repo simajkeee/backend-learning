@@ -8,12 +8,12 @@ use App\Enum\OrderStatus;
 use App\Factory\OrderFactory;
 use App\Repository\OrderFulfillmentRepository;
 use App\Repository\OrderRepository;
+use App\Tests\TestCase;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
-class OrderControllerTest extends WebTestCase
+class OrderControllerTest extends TestCase
 {
     private OrderRepository $orderRepo;
 
@@ -170,10 +170,15 @@ class OrderControllerTest extends WebTestCase
         $client->request('POST', "/orders/{$order->getId()}/fulfill", [
             'token' => $tokenValue,
         ]);
-        $response = $client->getResponse();
 
-        $this->assertResponseIsUnprocessable();
-        $this->assertStringContainsString('order_not_fulfillable', $response->getContent());
+        $this->assertResponseStatusCodeSame(409);
+        $this->assertArraysAreEqual(
+            [
+                'success' => false,
+                'error_code' => 'order_not_fulfillable',
+            ],
+            $this->jsonResponse()
+        );
     }
 
     public function testFulfillEndpointReturns404WithNotExistingOrder(): void
@@ -286,8 +291,14 @@ class OrderControllerTest extends WebTestCase
         $client = self::getClient();
         $client->request('POST', "/orders/{$order->getId()}/refund", ['token' => $value]);
 
-        $this->assertResponseIsUnprocessable();
-        $this->assertStringContainsString('order_not_refundable', $client->getResponse()->getContent());
+        $this->assertResponseStatusCodeSame(409);
+        $this->assertArraysAreEqual(
+            [
+                'success' => false,
+                'error_code' => 'order_not_refundable',
+            ],
+            $this->jsonResponse(),
+        );
     }
 
     public function testRefundOrderCantBePaid(): void
@@ -300,8 +311,14 @@ class OrderControllerTest extends WebTestCase
         $client = self::getClient();
         $client->request('POST', "/orders/{$order->getId()}/pay", ['token' => $value]);
 
-        $this->assertResponseIsUnprocessable();
-        $this->assertStringContainsString('order_not_payable', $client->getResponse()->getContent());
+        $this->assertResponseStatusCodeSame(409);
+        $this->assertArraysAreEqual(
+            [
+                'success' => false,
+                'error_code' => 'order_not_payable',
+            ],
+            $this->jsonResponse(),
+        );
     }
 
     public function testRefundOrderCantBeFulfilled(): void
@@ -314,8 +331,14 @@ class OrderControllerTest extends WebTestCase
         $client = self::getClient();
         $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $value]);
 
-        $this->assertResponseIsUnprocessable();
-        $this->assertStringContainsString('order_not_fulfillable', $client->getResponse()->getContent());
+        $this->assertResponseStatusCodeSame(409);
+        $this->assertArraysAreEqual(
+            [
+                'success' => false,
+                'error_code' => 'order_not_fulfillable',
+            ],
+            $this->jsonResponse()
+        );
     }
 
     public function testOrderToPaidWorksWithCsrf(): void
@@ -396,10 +419,14 @@ class OrderControllerTest extends WebTestCase
 
         $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
 
-        $this->assertResponseIsUnprocessable();
-        $this->assertStringContainsString(
-            'order_not_fulfillable',
-            $client->getResponse()->getContent()
+        $this->assertResponseStatusCodeSame(409);
+
+        $this->assertArraysAreEqual(
+            [
+                'success' => false,
+                'error_code' => 'order_not_fulfillable',
+            ],
+            $this->jsonResponse()
         );
 
         $fulfillmentRepo = self::getContainer()->get(OrderFulfillmentRepository::class);
@@ -417,7 +444,13 @@ class OrderControllerTest extends WebTestCase
         $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
         $response = $client->getResponse();
 
-        $this->assertStringContainsString('order_not_fulfillable', $response->getContent());
+        $this->assertArraysAreEqual(
+            [
+                'success' => false,
+                'error_code' => 'order_not_fulfillable',
+            ],
+            $this->jsonResponse()
+        );
         $orderFulfillmentRepo = self::getContainer()->get(OrderFulfillmentRepository::class);
         $fulfillments = $orderFulfillmentRepo->findAll();
 
@@ -435,7 +468,13 @@ class OrderControllerTest extends WebTestCase
         $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
         $response = $client->getResponse();
 
-        $this->assertStringContainsString('order_not_fulfillable', $response->getContent());
+        $this->assertArraysAreEqual(
+            [
+                'success' => false,
+                'error_code' => 'order_not_fulfillable',
+            ],
+            $this->jsonResponse()
+        );
         $orderFulfillmentRepo = self::getContainer()->get(OrderFulfillmentRepository::class);
         $fulfillments = $orderFulfillmentRepo->findAll();
 

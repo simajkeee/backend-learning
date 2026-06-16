@@ -174,7 +174,7 @@ class WebhookControllerTest extends WebTestCase
         $client->request('POST', '/webhooks/fake-payment', $payload);
         $response = $client->getResponse();
 
-        $this->assertResponseIsUnprocessable();
+        $this->assertResponseStatusCodeSame(409);
         $this->assertStringContainsString('"order_not_payable"', $response->getContent());
     }
 
@@ -190,7 +190,7 @@ class WebhookControllerTest extends WebTestCase
         $client->request('POST', '/webhooks/fake-payment', $payload);
         $response = $client->getResponse();
 
-        $this->assertResponseIsUnprocessable();
+        $this->assertResponseStatusCodeSame(409);
         $this->assertStringContainsString('"order_not_payable"', $response->getContent());
     }
 
