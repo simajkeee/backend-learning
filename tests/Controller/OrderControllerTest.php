@@ -8,7 +8,6 @@ use App\Enum\OrderStatus;
 use App\Factory\OrderFactory;
 use App\Repository\OrderFulfillmentRepository;
 use App\Repository\OrderRepository;
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Security\Csrf\CsrfToken;
@@ -113,7 +112,7 @@ class OrderControllerTest extends WebTestCase
     public function testInvalidOrderIdReturns404(): void
     {
         $client = self::getClient();
-        $client->request('POST', "/orders/-999/pay");
+        $client->request('POST', '/orders/-999/pay');
 
         $this->assertResponseStatusCodeSame(404);
     }
@@ -173,8 +172,8 @@ class OrderControllerTest extends WebTestCase
         ]);
         $response = $client->getResponse();
 
-        $this->assertSame(500, $response->getStatusCode());
-        $this->assertStringContainsString("Can't fulfill the order with status pending", $response->getContent());
+        $this->assertResponseIsUnprocessable();
+        $this->assertStringContainsString('order_not_fulfillable', $response->getContent());
     }
 
     public function testFulfillEndpointReturns404WithNotExistingOrder(): void
@@ -287,8 +286,8 @@ class OrderControllerTest extends WebTestCase
         $client = self::getClient();
         $client->request('POST', "/orders/{$order->getId()}/refund", ['token' => $value]);
 
-        $this->assertResponseStatusCodeSame(500);
-        $this->assertStringContainsString("Can't refund the order with status pending", $client->getResponse()->getContent());
+        $this->assertResponseIsUnprocessable();
+        $this->assertStringContainsString('order_not_refundable', $client->getResponse()->getContent());
     }
 
     public function testRefundOrderCantBePaid(): void
@@ -301,8 +300,8 @@ class OrderControllerTest extends WebTestCase
         $client = self::getClient();
         $client->request('POST', "/orders/{$order->getId()}/pay", ['token' => $value]);
 
-        $this->assertResponseStatusCodeSame(500);
-        $this->assertStringContainsString("Can't set paid status for the order with status refunded", $client->getResponse()->getContent());
+        $this->assertResponseIsUnprocessable();
+        $this->assertStringContainsString('order_not_payable', $client->getResponse()->getContent());
     }
 
     public function testRefundOrderCantBeFulfilled(): void
@@ -315,8 +314,8 @@ class OrderControllerTest extends WebTestCase
         $client = self::getClient();
         $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $value]);
 
-        $this->assertResponseStatusCodeSame(500);
-        $this->assertStringContainsString("Can't fulfill the order with status refunded", $client->getResponse()->getContent());
+        $this->assertResponseIsUnprocessable();
+        $this->assertStringContainsString('order_not_fulfillable', $client->getResponse()->getContent());
     }
 
     public function testOrderToPaidWorksWithCsrf(): void
@@ -397,9 +396,9 @@ class OrderControllerTest extends WebTestCase
 
         $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
 
-        $this->assertResponseStatusCodeSame(500);
+        $this->assertResponseIsUnprocessable();
         $this->assertStringContainsString(
-            "Can't fulfill the order with status fulfilled",
+            'order_not_fulfillable',
             $client->getResponse()->getContent()
         );
 
@@ -418,7 +417,7 @@ class OrderControllerTest extends WebTestCase
         $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
         $response = $client->getResponse();
 
-        $this->assertStringContainsString("Can't fulfill the order with status pending", $response->getContent());
+        $this->assertStringContainsString('order_not_fulfillable', $response->getContent());
         $orderFulfillmentRepo = self::getContainer()->get(OrderFulfillmentRepository::class);
         $fulfillments = $orderFulfillmentRepo->findAll();
 
@@ -436,7 +435,7 @@ class OrderControllerTest extends WebTestCase
         $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
         $response = $client->getResponse();
 
-        $this->assertStringContainsString("Can't fulfill the order with status refunded", $response->getContent());
+        $this->assertStringContainsString('order_not_fulfillable', $response->getContent());
         $orderFulfillmentRepo = self::getContainer()->get(OrderFulfillmentRepository::class);
         $fulfillments = $orderFulfillmentRepo->findAll();
 
@@ -448,7 +447,7 @@ class OrderControllerTest extends WebTestCase
         $order = OrderFactory::createWithStatus(OrderStatus::PAID);
         $fulfillment = $order->fulfill();
         self::assertNotNull($fulfillment);
-        $fulfillment->setCreatedAt(DateTimeImmutable::createFromFormat('Y-m-d H:i:s', '2026-05-30 13:41:24'));
+        $fulfillment->setCreatedAt(\DateTimeImmutable::createFromFormat('Y-m-d H:i:s', '2026-05-30 13:41:24'));
         $this->em->flush();
         $this->em->clear();
 
@@ -456,7 +455,7 @@ class OrderControllerTest extends WebTestCase
         $client->request('GET', "/orders/{$order->getId()}");
 
         $this->assertResponseStatusCodeSame(200);
-        $this->assertSelectorTextSame('span' , 'Status: fulfilled');
+        $this->assertSelectorTextSame('span', 'Status: fulfilled');
         $this->assertSelectorTextSame('[data-testid="fulfilled-date"]', '2026-05-30');
         $this->assertSelectorTextSame('[data-testid="fulfilled-time"]', '13:41:24');
     }

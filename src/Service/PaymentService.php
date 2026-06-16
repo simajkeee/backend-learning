@@ -40,7 +40,7 @@ class PaymentService
                 $order->markPaid();
 
                 $em->persist(new PaymentProviderEvent(
-                    $providerEventId, $payload
+                    $order, $providerEventId, $payload
                 ));
             });
         } catch (UniqueConstraintViolationException $e) {

@@ -19,6 +19,7 @@ class ExceptionMapper
             OrderNotFulfillableException::class => new HttpResponse(422, 'order_not_fulfillable'),
             OrderNotPayableException::class => new HttpResponse(422, 'order_not_payable'),
             OrderNotRefundableException::class => new HttpResponse(422, 'order_not_refundable'),
+            default => null,
         };
     }
 }

@@ -27,8 +27,13 @@ class PaymentProviderEvent
     #[Gedmo\Timestampable(on: 'create')]
     private ?\DateTimeImmutable $createdAt = null;
 
-    public function __construct(string $providerEventId, string $payload)
+    #[ORM\OneToOne(inversedBy: 'paymentProviderEvent', cascade: ['persist', 'remove'])]
+    #[ORM\JoinColumn(name: 'order_id', nullable: false)]
+    private ?Order $relatedOrder = null;
+
+    public function __construct(Order $order, string $providerEventId, string $payload)
     {
+        $this->relatedOrder = $order;
         $this->providerEventId = $providerEventId;
         $this->payload = $payload;
     }
@@ -58,5 +63,10 @@ class PaymentProviderEvent
         $this->createdAt = $createdAt;
 
         return $this;
+    }
+
+    public function getRelatedOrder(): ?Order
+    {
+        return $this->relatedOrder;
     }
 }

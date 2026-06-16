@@ -82,16 +82,31 @@ class WebhookControllerTest extends WebTestCase
         $this->assertCount(1, $providerEvents);
     }
 
-    public function testConstraintViolationIsTriggered(): void
+    public function testConstraintViolationIsTriggeredForTheSameEventId(): void
     {
         $eventId = 'evt_123';
 
-        $paymentProviderEvent = new PaymentProviderEvent($eventId, '{}');
+        $paymentProviderEvent = new PaymentProviderEvent(OrderFactory::new()->create(), $eventId, '{}');
         $this->em->persist($paymentProviderEvent);
         $this->em->flush();
 
         $this->expectException(UniqueConstraintViolationException::class);
-        $paymentProviderEvent = new PaymentProviderEvent($eventId, '{}');
+        $paymentProviderEvent = new PaymentProviderEvent(OrderFactory::new()->create(), $eventId, '{}');
+        $this->em->persist($paymentProviderEvent);
+        $this->em->flush();
+    }
+
+    public function testConstraintViolationIsTriggeredForTheSameOrder(): void
+    {
+
+        $order = OrderFactory::new()->create();
+
+        $paymentProviderEvent = new PaymentProviderEvent($order, 'evt_123', '{}');
+        $this->em->persist($paymentProviderEvent);
+        $this->em->flush();
+
+        $this->expectException(UniqueConstraintViolationException::class);
+        $paymentProviderEvent = new PaymentProviderEvent($order, 'evt_223', '{}');
         $this->em->persist($paymentProviderEvent);
         $this->em->flush();
     }
@@ -143,11 +158,11 @@ class WebhookControllerTest extends WebTestCase
         $client->request('POST', '/webhooks/fake-payment', $payload);
         $response = $client->getResponse();
 
-        $this->assertResponseIsUnprocessable();
-        $this->assertSame('{"paid":false,"reason":"Order 1 not found"}', $response->getContent());
+        $this->assertResponseStatusCodeSame(404);
+        $this->assertStringContainsString('"order_not_found"', $response->getContent());
     }
 
-    public function testOrderNotPendingStatusIsUnprocessable(): void
+    public function testOrderFulfilledStatusIsUnprocessable(): void
     {
         $order = OrderFactory::createWithStatus(OrderStatus::FULFILLED);
         $payload = [
@@ -160,6 +175,44 @@ class WebhookControllerTest extends WebTestCase
         $response = $client->getResponse();
 
         $this->assertResponseIsUnprocessable();
-        $this->assertSame('{"paid":false,"reason":"Can\u0027t set paid status for the order with status fulfilled"}', $response->getContent());
+        $this->assertStringContainsString('"order_not_payable"', $response->getContent());
+    }
+
+    public function testOrderRefundedStatusIsUnprocessable(): void
+    {
+        $order = OrderFactory::createWithStatus(OrderStatus::REFUNDED);
+        $payload = [
+            'orderId' => $order->getId(),
+            'providerEventId' => 'evt_123',
+            'status' => 'paid',
+        ];
+        $client = self::getClient();
+        $client->request('POST', '/webhooks/fake-payment', $payload);
+        $response = $client->getResponse();
+
+        $this->assertResponseIsUnprocessable();
+        $this->assertStringContainsString('"order_not_payable"', $response->getContent());
+    }
+
+    public function testOrderPaidStatusIsSuccessfulAndIdempotent(): void
+    {
+        $order = OrderFactory::createWithStatus(OrderStatus::PAID);
+        $payload = [
+            'orderId' => $order->getId(),
+            'providerEventId' => 'evt_123',
+            'status' => 'paid',
+        ];
+        $client = self::getClient();
+        $client->request('POST', '/webhooks/fake-payment', $payload);
+        $response = $client->getResponse();
+
+        $this->assertResponseStatusCodeSame(200);
+        $this->assertTrue(json_decode($response->getContent())->paid);
+
+        $client->request('POST', '/webhooks/fake-payment', $payload);
+        $response = $client->getResponse();
+
+        $this->assertResponseStatusCodeSame(200);
+        $this->assertTrue(json_decode($response->getContent())->paid);
     }
 }

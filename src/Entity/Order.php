@@ -40,6 +40,9 @@ class Order
     #[ORM\OneToOne(mappedBy: 'relatedOrder', cascade: ['persist', 'remove'])]
     private ?OrderFulfillment $orderFulfillment = null;
 
+    #[ORM\OneToOne(mappedBy: 'relatedOrder', cascade: ['persist', 'remove'])]
+    private ?PaymentProviderEvent $paymentProviderEvent = null;
+
     public function __construct(Product $product)
     {
         $this->product = $product;
@@ -124,5 +127,22 @@ class Order
     public function getOrderFulfillment(): ?OrderFulfillment
     {
         return $this->orderFulfillment;
+    }
+
+    public function getPaymentProviderEvent(): ?PaymentProviderEvent
+    {
+        return $this->paymentProviderEvent;
+    }
+
+    public function setPaymentProviderEvent(PaymentProviderEvent $paymentProviderEvent): static
+    {
+        // set the owning side of the relation if necessary
+        if ($paymentProviderEvent->getRelatedOrder() !== $this) {
+            $paymentProviderEvent->setRelatedOrder($this);
+        }
+
+        $this->paymentProviderEvent = $paymentProviderEvent;
+
+        return $this;
     }
 }
