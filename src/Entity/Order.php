@@ -133,7 +133,7 @@ class Order
         return $this->orderFulfillment;
     }
 
-    public function isPaidAndHasProviderEventId(string $providerEventId): bool
+    public function assertPaidEventMatches(string $providerEventId): bool
     {
         if ($this->isPaid()) {
             if ($this->hasProviderEventId($providerEventId)) {
