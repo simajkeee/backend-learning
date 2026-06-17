@@ -133,15 +133,17 @@ class Order
         return $this->orderFulfillment;
     }
 
-    public function assertIsPaidHasProviderEventId(string $providerEventId): void
+    public function isPaidAndHasProviderEventId(string $providerEventId): bool
     {
         if ($this->isPaid()) {
             if ($this->hasProviderEventId($providerEventId)) {
-                return;
+                return true;
             }
 
             throw OrderNotPayableException::withDefaultMsg($this->getStatus());
         }
+
+        return false;
     }
 
     public function hasProviderEventId(string $providerEventId): bool

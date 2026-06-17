@@ -36,7 +36,9 @@ class PaymentService
                     throw OrderNotFoundException::withDefaultMsg($orderId);
                 }
 
-                $order->assertIsPaidHasProviderEventId($providerEventId);
+                if ($order->isPaidAndHasProviderEventId($providerEventId)) {
+                    return;
+                }
 
                 $order->markPaid();
 
@@ -45,13 +47,13 @@ class PaymentService
                 ));
             });
         } catch (UniqueConstraintViolationException $e) {
+            $order = $this->orderRepo->find($orderId);
             $paymentProviderEvent = $this->paymentProviderEventRepo->findOneBy([
+                'relatedOrder' => $order,
                 'providerEventId' => $providerEventId,
             ]);
 
             if (null === $paymentProviderEvent) {
-                $order = $this->orderRepo->find($orderId);
-
                 throw OrderNotPayableException::withDefaultMsg($order->getStatus());
             }
         }
