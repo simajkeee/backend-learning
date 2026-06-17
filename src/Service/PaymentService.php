@@ -9,6 +9,7 @@ use App\Entity\PaymentProviderEvent;
 use App\Exception\OrderNotFoundException;
 use App\Exception\OrderNotPayableException;
 use App\Repository\OrderRepository;
+use App\Repository\PaymentProviderEventRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -16,6 +17,7 @@ class PaymentService
 {
     public function __construct(
         private readonly OrderRepository $orderRepo,
+        private readonly PaymentProviderEventRepository $paymentProviderEventRepo,
         private readonly EntityManagerInterface $em,
     ) {
     }
@@ -34,13 +36,7 @@ class PaymentService
                     throw OrderNotFoundException::withDefaultMsg($orderId);
                 }
 
-                if ($order->isPaid()) {
-                    if ($order->hasProviderEventId($providerEventId)) {
-                        return;
-                    }
-
-                    throw OrderNotPayableException::withDefaultMsg($order->getStatus());
-                }
+                $order->assertIsPaidHasProviderEventId($providerEventId);
 
                 $order->markPaid();
 
@@ -49,7 +45,15 @@ class PaymentService
                 ));
             });
         } catch (UniqueConstraintViolationException $e) {
-            // do nothing
+            $paymentProviderEvent = $this->paymentProviderEventRepo->findOneBy([
+                'providerEventId' => $providerEventId,
+            ]);
+
+            if (null === $paymentProviderEvent) {
+                $order = $this->orderRepo->find($orderId);
+
+                throw OrderNotPayableException::withDefaultMsg($order->getStatus());
+            }
         }
     }
 }

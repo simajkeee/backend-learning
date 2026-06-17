@@ -94,6 +94,10 @@ class Order
 
     public function markPaid(): void
     {
+        if (OrderStatus::PAID === $this->status) {
+            return;
+        }
+
         if (OrderStatus::PENDING !== $this->status) {
             throw OrderNotPayableException::withDefaultMsg($this->status);
         }
@@ -127,6 +131,17 @@ class Order
     public function getOrderFulfillment(): ?OrderFulfillment
     {
         return $this->orderFulfillment;
+    }
+
+    public function assertIsPaidHasProviderEventId(string $providerEventId): void
+    {
+        if ($this->isPaid()) {
+            if ($this->hasProviderEventId($providerEventId)) {
+                return;
+            }
+
+            throw OrderNotPayableException::withDefaultMsg($this->getStatus());
+        }
     }
 
     public function hasProviderEventId(string $providerEventId): bool
