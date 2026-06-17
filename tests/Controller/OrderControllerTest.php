@@ -10,8 +10,6 @@ use App\Repository\OrderFulfillmentRepository;
 use App\Repository\OrderRepository;
 use App\Tests\TestCase;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\Security\Csrf\CsrfToken;
-use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 class OrderControllerTest extends TestCase
 {
@@ -262,6 +260,7 @@ class OrderControllerTest extends TestCase
 
         $this->assertSame(OrderStatus::PENDING, $order->getStatus());
         $response = $client->getResponse();
+
         $this->assertSame(401, $response->getStatusCode());
         $this->assertStringContainsString('Invalid CSRF token', $response->getContent());
     }
@@ -442,7 +441,6 @@ class OrderControllerTest extends TestCase
 
         $client = self::getClient();
         $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
-        $response = $client->getResponse();
 
         $this->assertArraysAreEqual(
             [
@@ -466,7 +464,6 @@ class OrderControllerTest extends TestCase
 
         $client = self::getClient();
         $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
-        $response = $client->getResponse();
 
         $this->assertArraysAreEqual(
             [
@@ -497,19 +494,5 @@ class OrderControllerTest extends TestCase
         $this->assertSelectorTextSame('span', 'Status: fulfilled');
         $this->assertSelectorTextSame('[data-testid="fulfilled-date"]', '2026-05-30');
         $this->assertSelectorTextSame('[data-testid="fulfilled-time"]', '13:41:24');
-    }
-
-    private function setCsrfManagerWithToken(string $tokenValue): void
-    {
-        $csrfManager = $this->createStub(CsrfTokenManagerInterface::class);
-        $csrfManager
-            ->method('isTokenValid')
-            ->willReturn(true);
-        $csrfManager
-            ->method('getToken')
-            ->willReturnCallback(
-                fn (string $tokenId) => new CsrfToken($tokenId, $tokenValue)
-            );
-        self::getContainer()->set(CsrfTokenManagerInterface::class, $csrfManager);
     }
 }
