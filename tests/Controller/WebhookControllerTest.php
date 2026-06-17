@@ -10,11 +10,11 @@ use App\Entity\PaymentProviderEvent;
 use App\Enum\OrderStatus;
 use App\Factory\OrderFactory;
 use App\Repository\PaymentProviderEventRepository;
+use App\Tests\TestCase;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
-class WebhookControllerTest extends WebTestCase
+class WebhookControllerTest extends TestCase
 {
     private EntityManagerInterface $em;
 
@@ -98,7 +98,6 @@ class WebhookControllerTest extends WebTestCase
 
     public function testConstraintViolationIsTriggeredForTheSameOrder(): void
     {
-
         $order = OrderFactory::new()->create();
 
         $paymentProviderEvent = new PaymentProviderEvent($order, 'evt_123', '{}');
@@ -196,12 +195,13 @@ class WebhookControllerTest extends WebTestCase
 
     public function testOrderPaidStatusIsSuccessfulAndIdempotent(): void
     {
-        $order = OrderFactory::createWithStatus(OrderStatus::PAID);
+        $order = OrderFactory::createWithStatus(OrderStatus::PENDING);
         $payload = [
             'orderId' => $order->getId(),
             'providerEventId' => 'evt_123',
             'status' => 'paid',
         ];
+
         $client = self::getClient();
         $client->request('POST', '/webhooks/fake-payment', $payload);
         $response = $client->getResponse();
@@ -214,5 +214,34 @@ class WebhookControllerTest extends WebTestCase
 
         $this->assertResponseStatusCodeSame(200);
         $this->assertTrue(json_decode($response->getContent())->paid);
+    }
+
+    public function testOrderPaidStatusWithDifferentEventIdsReturn409CodeWithErrorCode(): void
+    {
+        $order = OrderFactory::createWithStatus(OrderStatus::PENDING);
+        $payload = [
+            'orderId' => $order->getId(),
+            'providerEventId' => 'evt_123',
+            'status' => 'paid',
+        ];
+
+        $client = self::getClient();
+        $client->request('POST', '/webhooks/fake-payment', $payload);
+        $response = $client->getResponse();
+
+        $this->assertResponseStatusCodeSame(200);
+        $this->assertTrue(json_decode($response->getContent())->paid);
+
+        $payload['providerEventId'] = 'changed_evt_123';
+        $client->request('POST', '/webhooks/fake-payment', $payload);
+
+        $this->assertResponseStatusCodeSame(409);
+        $this->assertArraysAreEqual(
+            [
+                'success' => false,
+                'error_code' => 'order_not_payable',
+            ],
+            $this->jsonResponse()
+        );
     }
 }

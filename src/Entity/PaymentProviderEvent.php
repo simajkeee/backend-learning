@@ -69,4 +69,9 @@ class PaymentProviderEvent
     {
         return $this->relatedOrder;
     }
+
+    public function isSameProviderEventId(string $providerEventId): bool
+    {
+        return $this->providerEventId === $providerEventId;
+    }
 }

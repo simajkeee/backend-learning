@@ -7,6 +7,7 @@ namespace App\Service;
 use App\Entity\Order;
 use App\Entity\PaymentProviderEvent;
 use App\Exception\OrderNotFoundException;
+use App\Exception\OrderNotPayableException;
 use App\Repository\OrderRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -34,7 +35,11 @@ class PaymentService
                 }
 
                 if ($order->isPaid()) {
-                    return;
+                    if ($order->hasProviderEventId($providerEventId)) {
+                        return;
+                    }
+
+                    throw OrderNotPayableException::withDefaultMsg($order->getStatus());
                 }
 
                 $order->markPaid();

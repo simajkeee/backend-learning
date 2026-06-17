@@ -129,20 +129,17 @@ class Order
         return $this->orderFulfillment;
     }
 
+    public function hasProviderEventId(string $providerEventId): bool
+    {
+        if (null === $this->getPaymentProviderEvent()) {
+            return false;
+        }
+
+        return $this->getPaymentProviderEvent()->isSameProviderEventId($providerEventId);
+    }
+
     public function getPaymentProviderEvent(): ?PaymentProviderEvent
     {
         return $this->paymentProviderEvent;
-    }
-
-    public function setPaymentProviderEvent(PaymentProviderEvent $paymentProviderEvent): static
-    {
-        // set the owning side of the relation if necessary
-        if ($paymentProviderEvent->getRelatedOrder() !== $this) {
-            $paymentProviderEvent->setRelatedOrder($this);
-        }
-
-        $this->paymentProviderEvent = $paymentProviderEvent;
-
-        return $this;
     }
 }
