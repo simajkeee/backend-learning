@@ -15,7 +15,7 @@ class ReportsController extends AbstractController
     public function fulfilledOrders(OrderFulfillmentRepository $repo): Response
     {
         return $this->render('report/fulfilled.html.twig', [
-            'report' => $repo->findForFulfilledOrdersReport()
+            'report' => $repo->findForFulfilledOrdersReport(),
         ]);
     }
 }

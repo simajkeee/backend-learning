@@ -12,11 +12,11 @@ class AppFixtures extends Fixture
 {
     public function load(ObjectManager $manager): void
     {
-        for ($i = 0; $i < 3; $i++) {
+        for ($i = 0; $i < 3; ++$i) {
             ProductFactory::new()->with([
                 'name' => 'product '.$i,
                 'description' => 'product text '.$i,
-                'price' => (string)mt_rand(10, 100),
+                'price' => (string) random_int(10, 100),
             ])->create();
         }
     }

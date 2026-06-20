@@ -6,7 +6,6 @@ namespace App\Factory;
 
 use App\Entity\Order;
 use App\Enum\OrderStatus;
-use DateTimeImmutable;
 use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
 
 /**
@@ -21,7 +20,7 @@ final class OrderFactory extends PersistentObjectFactory
 
     public function withStatus(OrderStatus $orderStatus): self
     {
-        return match($orderStatus) {
+        return match ($orderStatus) {
             OrderStatus::PAID => self::new()->paid(),
             OrderStatus::FULFILLED => self::new()->fulfilled(),
             OrderStatus::REFUNDED => self::new()->refunded(),
@@ -38,15 +37,15 @@ final class OrderFactory extends PersistentObjectFactory
     public function paid(): self
     {
         return $this
-             ->afterInstantiate(function(Order $order): void {
-                $order->markPaid();
+             ->afterInstantiate(function (Order $order): void {
+                 $order->markPaid();
              });
     }
 
     public function fulfilled(): self
     {
         return $this
-            ->afterInstantiate(function(Order $order): void {
+            ->afterInstantiate(function (Order $order): void {
                 $order->markPaid();
                 $order->fulfill();
             });
@@ -55,7 +54,7 @@ final class OrderFactory extends PersistentObjectFactory
     public function refunded(): self
     {
         return $this
-            ->afterInstantiate(function(Order $order): void {
+            ->afterInstantiate(function (Order $order): void {
                 $order->markPaid();
                 $order->refund();
             });
@@ -66,8 +65,8 @@ final class OrderFactory extends PersistentObjectFactory
     {
         return [
             'product' => ProductFactory::new(),
-            'createdAt' => DateTimeImmutable::createFromMutable(self::faker()->dateTime()),
-            'updatedAt' => DateTimeImmutable::createFromMutable(self::faker()->dateTime()),
+            'createdAt' => \DateTimeImmutable::createFromMutable(self::faker()->dateTime()),
+            'updatedAt' => \DateTimeImmutable::createFromMutable(self::faker()->dateTime()),
         ];
     }
 }

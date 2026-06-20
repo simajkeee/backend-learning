@@ -31,7 +31,7 @@ class OrderController extends AbstractController
     public function create(Product $product): Response
     {
         return $this->redirectToRoute('app.order', [
-            'id' => $this->orderService->create($product)->getId()
+            'id' => $this->orderService->create($product)->getId(),
         ]);
     }
 
@@ -40,7 +40,7 @@ class OrderController extends AbstractController
     public function pay(Order $order): Response
     {
         return $this->redirectToRoute('app.order', [
-            'id' => $this->orderService->markPaid($order)->getId()
+            'id' => $this->orderService->markPaid($order)->getId(),
         ]);
     }
 
@@ -49,7 +49,7 @@ class OrderController extends AbstractController
     public function fulfill(Order $order): Response
     {
         return $this->redirectToRoute('app.order', [
-            'id' => $this->orderService->fulfill($order)->getId()
+            'id' => $this->orderService->fulfill($order)->getId(),
         ]);
     }
 
@@ -58,7 +58,7 @@ class OrderController extends AbstractController
     public function refund(Order $order): Response
     {
         return $this->redirectToRoute('app.order', [
-            'id' => $this->orderService->refund($order)->getId()
+            'id' => $this->orderService->refund($order)->getId(),
         ]);
     }
 }

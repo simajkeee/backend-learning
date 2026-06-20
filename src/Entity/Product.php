@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Repository\ProductRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use Gedmo\Mapping\Annotation as Gedmo;
-use App\Repository\ProductRepository;
-use Doctrine\ORM\Mapping as ORM;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Mapping\Annotation as Gedmo;
 
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
 #[ORM\Table(name: 'products')]
@@ -29,7 +29,6 @@ class Product
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2)]
     private string $price;
-
 
     #[ORM\OneToMany(targetEntity: Order::class, mappedBy: 'product')]
     private Collection $orders;
