@@ -18,6 +18,9 @@ class OrderFulfillmentRepository extends ServiceEntityRepository
         parent::__construct($registry, OrderFulfillment::class);
     }
 
+    /**
+     * @return list<OrderFulfillment>
+     */
     public function findForFulfilledOrdersReport(): array
     {
         $qb = $this->createQueryBuilder('f')

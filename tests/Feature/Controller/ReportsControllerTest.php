@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Controller;
+namespace App\Tests\Feature\Controller;
 
 use App\Entity\Order;
 use App\Enum\OrderStatus;

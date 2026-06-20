@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Controller;
+namespace App\Tests\Feature\Controller;
 
 use App\Enum\OrderStatus;
 use App\Factory\OrderFactory;
@@ -10,27 +10,30 @@ use App\Repository\OrderFulfillmentRepository;
 use App\Repository\OrderRepository;
 use App\Tests\TestCase;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 class OrderControllerTest extends TestCase
 {
+    private KernelBrowser $client;
+
     private OrderRepository $orderRepo;
 
     private EntityManagerInterface $em;
 
     public function setUp(): void
     {
-        self::createClient();
+        $this->client = self::createClient();
         $container = static::getContainer();
+
         $this->orderRepo = $container->get(OrderRepository::class);
         $this->em = $container->get(EntityManagerInterface::class);
     }
 
     public function testProductOrderCreatedAndRedirected(): void
     {
-        $client = self::getClient();
-        $crawler = $client->request('GET', '/products/product-0');
+        $crawler = $this->client->request('GET', '/products/product-0');
         $form = $crawler->selectButton('Buy')->form();
-        $client->submit($form);
+        $this->client->submit($form);
 
         $orders = $this->orderRepo->findAll();
 
@@ -40,12 +43,11 @@ class OrderControllerTest extends TestCase
 
     public function testRedirectShowsProductNameAndStatus(): void
     {
-        $client = self::getClient();
-        $client->followRedirects();
+        $this->client->followRedirects();
 
-        $crawler = $client->request('GET', '/products/product-0');
+        $crawler = $this->client->request('GET', '/products/product-0');
         $form = $crawler->selectButton('Buy')->form();
-        $client->submit($form);
+        $this->client->submit($form);
 
         $orders = $this->orderRepo->findAll();
         $this->assertCount(1, $orders);
@@ -59,7 +61,7 @@ class OrderControllerTest extends TestCase
 
     public function testFakeSlugNotFoundOnOrderCreation(): void
     {
-        self::getClient()
+        $this->client
             ->request('POST', '/products/fake---0121412412/orders');
 
         $this->assertResponseStatusCodeSame(404);
@@ -77,14 +79,12 @@ class OrderControllerTest extends TestCase
 
     public function testOrderChangesStatusAndRedirects(): void
     {
-        $client = self::getClient();
-
         $order = OrderFactory::new()->create();
         $id = $order->getId();
 
-        $crawler = $client->request('GET', "/orders/{$id}");
+        $crawler = $this->client->request('GET', "/orders/{$id}");
         $form = $crawler->selectButton('Mark as paid')->form();
-        $client->submit($form);
+        $this->client->submit($form);
 
         $this->assertResponseRedirects("/orders/{$id}");
 
@@ -94,23 +94,21 @@ class OrderControllerTest extends TestCase
 
     public function testFollowRedirectShowsPaidStatus(): void
     {
-        $client = self::getClient();
-        $client->followRedirects();
+        $this->client->followRedirects();
 
         $order = OrderFactory::new()->create();
         $id = $order->getId();
 
-        $crawler = $client->request('GET', "/orders/{$id}");
+        $crawler = $this->client->request('GET', "/orders/{$id}");
         $form = $crawler->selectButton('Mark as paid')->form();
-        $client->submit($form);
+        $this->client->submit($form);
 
         $this->assertSelectorTextSame('span', 'Status: paid');
     }
 
     public function testInvalidOrderIdReturns404(): void
     {
-        $client = self::getClient();
-        $client->request('POST', '/orders/-999/pay');
+        $this->client->request('POST', '/orders/-999/pay');
 
         $this->assertResponseStatusCodeSame(404);
     }
@@ -119,7 +117,7 @@ class OrderControllerTest extends TestCase
     {
         $order = OrderFactory::createWithStatus(OrderStatus::PAID);
 
-        self::getClient()
+        $this->client
             ->request('GET', "/orders/{$order->getId()}");
 
         $this->assertResponseIsSuccessful();
@@ -130,7 +128,7 @@ class OrderControllerTest extends TestCase
     {
         $order = OrderFactory::new()->create();
 
-        self::getClient()
+        $this->client
             ->request('GET', "/orders/{$order->getId()}");
 
         $this->assertResponseIsSuccessful();
@@ -143,12 +141,11 @@ class OrderControllerTest extends TestCase
         $id = $order->getId();
         $this->assertTrue($order->isPaid());
 
-        $client = self::getClient();
-        $client->followRedirects();
+        $this->client->followRedirects();
 
-        $crawler = $client->request('GET', "/orders/{$id}");
+        $crawler = $this->client->request('GET', "/orders/{$id}");
         $form = $crawler->selectButton('Fulfill')->form();
-        $client->submit($form);
+        $this->client->submit($form);
 
         $order = $this->orderRepo->findOneBy(['id' => $id]);
 
@@ -160,12 +157,10 @@ class OrderControllerTest extends TestCase
     {
         $order = OrderFactory::new()->create();
 
-        $client = self::getClient();
-
         $tokenValue = 'test-token';
         $this->setCsrfManagerWithToken($tokenValue);
 
-        $client->request('POST', "/orders/{$order->getId()}/fulfill", [
+        $this->client->request('POST', "/orders/{$order->getId()}/fulfill", [
             'token' => $tokenValue,
         ]);
 
@@ -211,11 +206,9 @@ class OrderControllerTest extends TestCase
     {
         $order = OrderFactory::createWithStatus(OrderStatus::PAID);
 
-        $client = self::getClient();
-
-        $crawler = $client->request('GET', "/orders/{$order->getId()}");
+        $crawler = $this->client->request('GET', "/orders/{$order->getId()}");
         $form = $crawler->selectButton('Refund')->form();
-        $client->submit($form);
+        $this->client->submit($form);
 
         $order = $this->orderRepo->find($order->getId());
         $this->assertSame(OrderStatus::REFUNDED, $order->getStatus());
@@ -227,12 +220,11 @@ class OrderControllerTest extends TestCase
     {
         $order = OrderFactory::createWithStatus(OrderStatus::PAID);
 
-        $client = self::getClient();
-        $client->followRedirects();
+        $this->client->followRedirects();
 
-        $crawler = $client->request('GET', "/orders/{$order->getId()}");
+        $crawler = $this->client->request('GET', "/orders/{$order->getId()}");
         $form = $crawler->selectButton('Refund')->form();
-        $client->submit($form);
+        $this->client->submit($form);
 
         $order = $this->orderRepo->find($order->getId());
         $this->assertSame(OrderStatus::REFUNDED, $order->getStatus());
@@ -253,13 +245,12 @@ class OrderControllerTest extends TestCase
     {
         $order = OrderFactory::new()->create();
 
-        $client = self::getClient();
-        $client->request('POST', "/orders/{$order->getId()}/pay");
+        $this->client->request('POST', "/orders/{$order->getId()}/pay");
 
         $order = $this->orderRepo->find($order->getId());
 
         $this->assertSame(OrderStatus::PENDING, $order->getStatus());
-        $response = $client->getResponse();
+        $response = $this->client->getResponse();
 
         $this->assertSame(401, $response->getStatusCode());
         $this->assertStringContainsString('Invalid CSRF token', $response->getContent());
@@ -269,13 +260,12 @@ class OrderControllerTest extends TestCase
     {
         $order = OrderFactory::createWithStatus(OrderStatus::PAID);
 
-        $client = self::getClient();
-        $client->request('POST', "/orders/{$order->getId()}/fulfill");
+        $this->client->request('POST', "/orders/{$order->getId()}/fulfill");
 
         $order = $this->orderRepo->find($order->getId());
 
         $this->assertSame(OrderStatus::PAID, $order->getStatus());
-        $response = $client->getResponse();
+        $response = $this->client->getResponse();
         $this->assertSame(401, $response->getStatusCode());
         $this->assertStringContainsString('Invalid CSRF token', $response->getContent());
     }
@@ -287,8 +277,7 @@ class OrderControllerTest extends TestCase
         $value = 'test-token';
         $this->setCsrfManagerWithToken($value);
 
-        $client = self::getClient();
-        $client->request('POST', "/orders/{$order->getId()}/refund", ['token' => $value]);
+        $this->client->request('POST', "/orders/{$order->getId()}/refund", ['token' => $value]);
 
         $this->assertResponseStatusCodeSame(409);
         $this->assertArraysAreEqual(
@@ -307,8 +296,7 @@ class OrderControllerTest extends TestCase
         $value = 'test-token';
         $this->setCsrfManagerWithToken($value);
 
-        $client = self::getClient();
-        $client->request('POST', "/orders/{$order->getId()}/pay", ['token' => $value]);
+        $this->client->request('POST', "/orders/{$order->getId()}/pay", ['token' => $value]);
 
         $this->assertResponseStatusCodeSame(409);
         $this->assertArraysAreEqual(
@@ -327,8 +315,7 @@ class OrderControllerTest extends TestCase
         $value = 'test-token';
         $this->setCsrfManagerWithToken($value);
 
-        $client = self::getClient();
-        $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $value]);
+        $this->client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $value]);
 
         $this->assertResponseStatusCodeSame(409);
         $this->assertArraysAreEqual(
@@ -410,13 +397,12 @@ class OrderControllerTest extends TestCase
         $tokenValue = 'test-token';
         $this->setCsrfManagerWithToken($tokenValue);
 
-        $client = self::getClient();
-        $client->disableReboot();
+        $this->client->disableReboot();
 
-        $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
+        $this->client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
         $this->assertResponseRedirects("/orders/{$order->getId()}");
 
-        $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
+        $this->client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
 
         $this->assertResponseStatusCodeSame(409);
 
@@ -439,8 +425,7 @@ class OrderControllerTest extends TestCase
         $tokenValue = 'test-order';
         $this->setCsrfManagerWithToken($tokenValue);
 
-        $client = self::getClient();
-        $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
+        $this->client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
 
         $this->assertArraysAreEqual(
             [
@@ -462,8 +447,7 @@ class OrderControllerTest extends TestCase
         $tokenValue = 'test-order';
         $this->setCsrfManagerWithToken($tokenValue);
 
-        $client = self::getClient();
-        $client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
+        $this->client->request('POST', "/orders/{$order->getId()}/fulfill", ['token' => $tokenValue]);
 
         $this->assertArraysAreEqual(
             [
@@ -482,13 +466,11 @@ class OrderControllerTest extends TestCase
     {
         $order = OrderFactory::createWithStatus(OrderStatus::PAID);
         $fulfillment = $order->fulfill();
-        self::assertNotNull($fulfillment);
         $fulfillment->setCreatedAt(\DateTimeImmutable::createFromFormat('Y-m-d H:i:s', '2026-05-30 13:41:24'));
         $this->em->flush();
         $this->em->clear();
 
-        $client = self::getClient();
-        $client->request('GET', "/orders/{$order->getId()}");
+        $this->client->request('GET', "/orders/{$order->getId()}");
 
         $this->assertResponseStatusCodeSame(200);
         $this->assertSelectorTextSame('span', 'Status: fulfilled');

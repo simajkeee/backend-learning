@@ -15,7 +15,7 @@ class OrderFulfillment
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private ?int $id = null;
+    private ?int $id = null; // @phpstan-ignore property.unusedType
 
     #[ORM\OneToOne(inversedBy: 'orderFulfillment', cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(name: 'order_id', referencedColumnName: 'id', nullable: false)]

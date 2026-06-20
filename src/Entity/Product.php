@@ -18,18 +18,21 @@ class Product
     #[ORM\Id]
     #[ORM\Column(type: Types::INTEGER)]
     #[ORM\GeneratedValue]
-    private ?int $id = null;
+    private ?int $id = null; // @phpstan-ignore property.unusedType
 
     #[ORM\Column(type: Types::STRING, length: 255, unique: true)]
     private string $name;
 
     #[ORM\Column(type: Types::STRING, length: 128, unique: true)]
     #[Gedmo\Slug(fields: ['name'])]
-    private ?string $slug = null;
+    private ?string $slug = null; // @phpstan-ignore property.unusedType
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2)]
     private string $price;
 
+    /**
+     * @var Collection<int, Order>
+     */
     #[ORM\OneToMany(targetEntity: Order::class, mappedBy: 'product')]
     private Collection $orders;
 
@@ -43,6 +46,9 @@ class Product
         $this->orders = new ArrayCollection();
     }
 
+    /**
+     * @return Collection<int, Order>
+     */
     public function getOrders(): Collection
     {
         return $this->orders;

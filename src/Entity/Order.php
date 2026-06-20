@@ -8,6 +8,7 @@ use App\Enum\OrderStatus;
 use App\Exception\OrderNotFulfillableException;
 use App\Exception\OrderNotPayableException;
 use App\Exception\OrderNotRefundableException;
+use App\Exception\OrderPaymentProviderEventException;
 use App\Repository\OrderRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -20,7 +21,7 @@ class Order
     #[ORM\Id]
     #[ORM\Column(type: Types::INTEGER)]
     #[ORM\GeneratedValue]
-    private ?int $id = null;
+    private ?int $id = null; // @phpstan-ignore property.unusedType
 
     #[ORM\ManyToOne(targetEntity: Product::class, inversedBy: 'orders')]
     #[ORM\JoinColumn(name: 'product_id', referencedColumnName: 'id')]
@@ -161,5 +162,14 @@ class Order
     public function getPaymentProviderEvent(): ?PaymentProviderEvent
     {
         return $this->paymentProviderEvent;
+    }
+
+    public function attachPaymentProviderEvent(PaymentProviderEvent $paymentProviderEvent): void
+    {
+        if ($paymentProviderEvent->getRelatedOrder() !== $this) {
+            throw OrderPaymentProviderEventException::withDefaultMsg();
+        }
+
+        $this->paymentProviderEvent = $paymentProviderEvent;
     }
 }

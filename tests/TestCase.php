@@ -24,6 +24,9 @@ abstract class TestCase extends WebTestCase
         self::getContainer()->set(CsrfTokenManagerInterface::class, $csrfManager);
     }
 
+    /**
+     * @return array<mixed>
+     */
     protected function jsonResponse(): array
     {
         return json_decode(

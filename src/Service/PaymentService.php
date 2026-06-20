@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Entity\Order;
 use App\Entity\PaymentProviderEvent;
 use App\Exception\OrderNotFoundException;
 use App\Exception\OrderNotPayableException;
@@ -30,7 +29,6 @@ class PaymentService
                 $providerEventId,
                 $payload,
             ): void {
-                /** @var Order $order */
                 $order = $this->orderRepo->find($orderId);
                 if (null === $order) {
                     throw OrderNotFoundException::withDefaultMsg($orderId);

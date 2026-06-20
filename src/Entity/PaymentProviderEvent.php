@@ -15,7 +15,7 @@ class PaymentProviderEvent
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private ?int $id = null;
+    private ?int $id = null; // @phpstan-ignore property.unusedType
 
     #[ORM\Column(type: Types::STRING, unique: true)]
     private ?string $providerEventId = null;
@@ -36,6 +36,8 @@ class PaymentProviderEvent
         $this->relatedOrder = $order;
         $this->providerEventId = $providerEventId;
         $this->payload = $payload;
+
+        $this->relatedOrder->attachPaymentProviderEvent($this);
     }
 
     public function getId(): ?int
