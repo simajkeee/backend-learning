@@ -136,18 +136,9 @@ class Order
 
     public function assertPaidEventMatches(string $providerEventId): void
     {
-        if ($this->isPaid()) {
-            if ($this->hasProviderEventId($providerEventId)) {
-                return;
-            }
-
+        if (!$this->hasProviderEventId($providerEventId)) {
             throw OrderNotPayableException::withDefaultMsg($this->getStatus());
         }
-    }
-
-    public function isPaidAndEventMatches(string $providerEventId): bool
-    {
-        return $this->isPaid() && $this->hasProviderEventId($providerEventId);
     }
 
     public function hasProviderEventId(string $providerEventId): bool

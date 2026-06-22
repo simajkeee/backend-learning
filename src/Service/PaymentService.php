@@ -34,8 +34,9 @@ class PaymentService
                     throw OrderNotFoundException::withDefaultMsg($orderId);
                 }
 
-                $order->assertPaidEventMatches($providerEventId);
-                if ($order->isPaidAndEventMatches($providerEventId)) {
+                if ($order->isPaid()) {
+                    $order->assertPaidEventMatches($providerEventId);
+
                     return;
                 }
 
