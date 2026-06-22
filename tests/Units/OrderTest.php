@@ -55,7 +55,7 @@ class OrderTest extends TestCase
             payload: '{}',
         );
 
-        self::assertTrue($order->hasProviderEventId('evt_123'));
+        $this->assertTrue($order->hasProviderEventId('evt_123'));
     }
 
     public function testAttachingWrongPaymentEventTriggersException(): void

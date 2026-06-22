@@ -132,6 +132,6 @@ class ExceptionListenerTest extends TestCase
 
         $listener($event);
 
-        self::assertNull($event->getResponse());
+        $this->assertNull($event->getResponse());
     }
 }

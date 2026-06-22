@@ -20,7 +20,7 @@ class ProductSlugTest extends KernelTestCase
         $em->persist($product);
         $em->flush();
 
-        self::assertNotNull($product->getId());
-        self::assertSame('test-product', $product->getSlug());
+        $this->assertNotNull($product->getId());
+        $this->assertSame('test-product', $product->getSlug());
     }
 }
