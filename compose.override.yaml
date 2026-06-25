@@ -1,6 +1,40 @@
 ---
 # Development environment override
 services:
+  redis_insight:
+    image: redis/redisinsight:latest
+    restart: unless-stopped
+    ports:
+      - "5540:5540"
+    volumes:
+      - redisinsight:/data
+    depends_on:
+      - redis
+
+  messenger_worker:
+    image: ${IMAGES_PREFIX:-}app-php-dev
+    build:
+      context: .
+      target: frankenphp_dev
+    restart: unless-stopped
+    volumes:
+      - ./:/app
+      - ./frankenphp/conf.d/20-app.dev.ini:/usr/local/etc/php/app.conf.d/20-app.dev.ini:ro
+      - /app/var
+    environment:
+      APP_ENV: "${APP_ENV:-dev}"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-!ChangeMe!}@database:5432/${POSTGRES_DB:-app}?serverVersion=${POSTGRES_VERSION:-15}&charset=${POSTGRES_CHARSET:-utf8}
+      MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:-redis://redis:6379/messages}
+      MESSENGER_FAILED_TRANSPORT_DSN: ${MESSENGER_FAILED_TRANSPORT_DSN:-redis://redis:6379/failed}
+      XDEBUG_MODE: "${XDEBUG_MODE:-off}"
+    depends_on:
+      - database
+      - redis
+    command: php bin/console messenger:consume redis --time-limit=3600 --memory-limit=128M -vv
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    tty: true
+
   php:
     image: ${IMAGES_PREFIX:-}app-php-dev
     build:
@@ -45,3 +79,6 @@ services:
       MP_SMTP_AUTH_ACCEPT_ANY: 1
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
 ###< symfony/mailer ###
+
+volumes:
+  redisinsight:

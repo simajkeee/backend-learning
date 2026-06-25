@@ -6,6 +6,8 @@ SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
 
 WORKDIR /app
 
+ARG REDIS_VERSION=6.2.0
+
 RUN <<-EOF
 	apt-get update
 	apt-get install -y --no-install-recommends \
@@ -24,6 +26,25 @@ ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV PHP_INI_SCAN_DIR=":$PHP_INI_DIR/app.conf.d"
 
 RUN install-php-extensions pdo_pgsql
+
+RUN <<-EOF
+	apt-get update
+	apt-get install -y --no-install-recommends $PHPIZE_DEPS
+
+	curl -fsSL "https://github.com/phpredis/phpredis/archive/refs/tags/${REDIS_VERSION}.tar.gz" -o /tmp/redis.tar.gz
+	mkdir -p /tmp/redis
+	tar -xzf /tmp/redis.tar.gz -C /tmp/redis --strip-components=1
+
+	cd /tmp/redis
+	phpize
+	./configure
+	make -j"$(nproc)"
+	make install
+	docker-php-ext-enable redis
+
+	cd /app
+	rm -rf /tmp/redis /tmp/redis.tar.gz /var/lib/apt/lists/*
+EOF
 
 COPY --link frankenphp/conf.d/10-app.ini $PHP_INI_DIR/app.conf.d/
 COPY --link --chmod=755 frankenphp/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
