@@ -19,7 +19,7 @@ abstract class TestCase extends WebTestCase
         $csrfManager
             ->method('getToken')
             ->willReturnCallback(
-                fn (string $tokenId) => new CsrfToken($tokenId, $tokenValue)
+                fn (string $tokenId) => new CsrfToken($tokenId, $tokenValue),
             );
         self::getContainer()->set(CsrfTokenManagerInterface::class, $csrfManager);
     }
@@ -32,7 +32,7 @@ abstract class TestCase extends WebTestCase
         return json_decode(
             self::getClient()->getResponse()->getContent(),
             true,
-            flags: JSON_THROW_ON_ERROR
+            flags: JSON_THROW_ON_ERROR,
         );
     }
 }

@@ -13,21 +13,29 @@ use App\Repository\PaymentProviderEventRepository;
 use App\Tests\TestCase;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Response;
+use Zenstruck\Messenger\Test\InteractsWithMessenger;
+use Zenstruck\Messenger\Test\Transport\TestTransport;
 
 class WebhookControllerTest extends TestCase
 {
+    use InteractsWithMessenger;
+
     private EntityManagerInterface $em;
 
     private PaymentProviderEventRepository $paymentProviderEventRepo;
+
+    private TestTransport $transport;
 
     public function setUp(): void
     {
         self::createClient();
         $this->em = self::getContainer()->get(EntityManagerInterface::class);
         $this->paymentProviderEventRepo = self::getContainer()->get(PaymentProviderEventRepository::class);
+        $this->transport = $this->transport('redis');
     }
 
-    public function testOrderStatusChangedToPaidAndPaymentProviderEvenIsCreated(): void
+    public function testOrderStatusChangedToPaidAndPaymentProviderEventIsCreated(): void
     {
         $order = OrderFactory::new()->create();
         $providerEventId = 'evt_123';
@@ -37,15 +45,19 @@ class WebhookControllerTest extends TestCase
             'status' => 'paid',
         ];
 
+        $this->transport->queue()->assertEmpty();
+
         self::getClient()
             ->request('POST', '/webhooks/fake-payment', $payload);
 
-        $this->assertResponseIsSuccessful();
+        $this->assertResponseStatusCodeSame(Response::HTTP_ACCEPTED);
 
-        $orderRepo = $this->em->getRepository(Order::class);
-        $order = $orderRepo->find($order->getId());
-        $this->assertNotNull($order);
-        $this->assertTrue($order->isPaid());
+        $this->transport->processOrFail();
+
+        $this->em->clear();
+
+        $freshOrder = $this->em->getRepository(Order::class)->find($order->getId());
+        $this->assertSame(OrderStatus::PAID, $freshOrder->getStatus());
 
         $providerEvent = $this->paymentProviderEventRepo->findOneBy(['providerEventId' => $providerEventId]);
         $this->assertNotNull($providerEvent);
@@ -241,7 +253,7 @@ class WebhookControllerTest extends TestCase
                 'success' => false,
                 'error_code' => 'order_not_payable',
             ],
-            $this->jsonResponse()
+            $this->jsonResponse(),
         );
     }
 }
