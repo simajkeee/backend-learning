@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\DTO;
 
 use App\Enum\PaymentStatus;
+use App\Validator\OrderPayable;
 use Symfony\Component\Validator\Constraints as Assert;
 
 class PaymentEvent
@@ -14,8 +15,10 @@ class PaymentEvent
 
     #[Assert\NotBlank]
     #[Assert\Positive]
-    public int $orderId = 0;
+    #[OrderPayable]
+    public ?int $orderId = null;
 
+    #[Assert\NotBlank]
     #[Assert\Choice(callback: [PaymentStatus::class, 'values'])]
     public string $status = '';
 }
