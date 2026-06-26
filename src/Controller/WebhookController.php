@@ -38,7 +38,7 @@ class WebhookController extends AbstractController
 
             $this->bus->dispatch(new PaymentProcessing(
                 $this->serializer->serialize($paymentEvent, 'json'),
-                $idempotencyKey
+                $idempotencyKey,
             ), [
                 new DeduplicateStamp('dispatch.'.$idempotencyKey),
             ]);
@@ -52,7 +52,7 @@ class WebhookController extends AbstractController
 
             return $this->json(
                 ['processing' => false],
-                Response::HTTP_SERVICE_UNAVAILABLE
+                Response::HTTP_SERVICE_UNAVAILABLE,
             );
         }
     }

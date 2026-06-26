@@ -31,8 +31,7 @@ class PaymentProcessingHandler
         $content = $message->getContent();
         $paymentEvent = $this->serializer->deserializeJson($content, PaymentEvent::class);
 
-        $lock = $this->lockFactory->createLock(
-            'handler.'.$message->getIdempotencyKey(), 120);
+        $lock = $this->lockFactory->createLock('handler.'.$message->getIdempotencyKey(), 120);
         if (!$lock->acquire()) {
             throw new RecoverableMessageHandlingException(sprintf('Order %d is already being processed.', $paymentEvent->orderId));
         }

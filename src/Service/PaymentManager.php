@@ -6,7 +6,9 @@ namespace App\Service;
 
 use App\Entity\Order;
 use App\Entity\PaymentProviderEvent;
+use App\Exception\InvalidPaymentProviderEventForOrder;
 use App\Exception\OrderNotFoundException;
+use App\Repository\PaymentProviderEventRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
@@ -15,6 +17,7 @@ class PaymentManager
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
+        private readonly PaymentProviderEventRepository $eventRepo,
     ) {
     }
 
@@ -26,7 +29,7 @@ class PaymentManager
                 $providerEventId,
                 $payload,
             ): void {
-                $order = $this->em->find(Order::class, $orderId, LockMode::PESSIMISTIC_WRITE);
+                $order = $em->find(Order::class, $orderId, LockMode::PESSIMISTIC_WRITE);
                 if (null === $order) {
                     throw OrderNotFoundException::withDefaultMsg($orderId);
                 }
@@ -39,8 +42,19 @@ class PaymentManager
 
                 $order->markPaid();
 
+                $providerEventEntity = $this->eventRepo->findOneBy(['providerEventId' => $providerEventId]);
+                if ($providerEventEntity instanceof PaymentProviderEvent) {
+                    throw InvalidPaymentProviderEventForOrder::eventAlreadyBelongsToAnotherOrder(
+                        $providerEventId,
+                        $order->getId(),
+                        $providerEventEntity->getRelatedOrder()->getId(),
+                    );
+                }
+
                 $em->persist(new PaymentProviderEvent(
-                    $order, $providerEventId, $payload
+                    $order,
+                    $providerEventId,
+                    $payload,
                 ));
             });
         } catch (UniqueConstraintViolationException $e) {

@@ -17,7 +17,7 @@ readonly class ExceptionListener
     public function __invoke(ExceptionEvent $event): void
     {
         $httpResponse = $this->mapper->toHttpResponse(
-            $event->getThrowable()
+            $event->getThrowable(),
         );
 
         if ($httpResponse) {
