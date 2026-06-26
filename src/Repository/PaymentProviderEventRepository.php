@@ -17,4 +17,9 @@ class PaymentProviderEventRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, PaymentProviderEvent::class);
     }
+
+    public function findOneByProviderEventId(string $providerEventId): ?PaymentProviderEvent
+    {
+        return $this->findOneBy(['providerEventId' => $providerEventId]);
+    }
 }

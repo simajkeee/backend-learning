@@ -17,4 +17,16 @@ class OrderRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Order::class);
     }
+
+    public function lockById(int $orderId): bool
+    {
+        $orderId = $this->getEntityManager()
+                        ->getConnection()
+                        ->fetchOne(
+                            'SELECT id FROM orders WHERE id = :id FOR UPDATE',
+                            ['id' => $orderId],
+                        );
+
+        return false !== $orderId;
+    }
 }

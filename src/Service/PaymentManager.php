@@ -9,7 +9,6 @@ use App\Entity\PaymentProviderEvent;
 use App\Exception\InvalidPaymentProviderEventForOrder;
 use App\Exception\OrderNotFoundException;
 use App\Repository\PaymentProviderEventRepository;
-use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 
 class PaymentManager
@@ -22,23 +21,27 @@ class PaymentManager
 
     public function processPaid(int $orderId, string $providerEventId, string $payload): void
     {
-        $this->em->wrapInTransaction(function (EntityManagerInterface $em) use (
+        $this->em->wrapInTransaction(static function (EntityManagerInterface $em) use (
             $orderId,
             $providerEventId,
             $payload,
         ): void {
-            $order = $em->find(Order::class, $orderId, LockMode::PESSIMISTIC_WRITE);
-            if (null === $order) {
+            $orderRepo = $em->getRepository(Order::class);
+
+            $locked = $orderRepo->lockById($orderId);
+            if (!$locked) {
                 throw OrderNotFoundException::withDefaultMsg($orderId);
             }
 
+            $order = $orderRepo->find($orderId);
             if ($order->isPaid()) {
                 $order->assertPaidEventMatches($providerEventId);
 
                 return;
             }
 
-            $providerEventEntity = $this->eventRepo->findOneBy(['providerEventId' => $providerEventId]);
+            $providerEventEntity = $em->getRepository(PaymentProviderEvent::class)
+                                      ->findOneByProviderEventId($providerEventId);
             if ($providerEventEntity instanceof PaymentProviderEvent) {
                 throw InvalidPaymentProviderEventForOrder::eventAlreadyBelongsToAnotherOrder(
                     $providerEventId,
