@@ -44,8 +44,13 @@ class PaymentProcessingHandler
                 $paymentEvent->providerEventId,
                 $content,
             );
-        } catch (OrderNotFoundException|OrderNotPayableException|InvalidPaymentProviderEventForOrder|UniqueConstraintViolationException $e) {
+        } catch (OrderNotFoundException|OrderNotPayableException|InvalidPaymentProviderEventForOrder $e) {
             $this->logger->warning("Can't process the order {$paymentEvent->orderId}", [
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
+        } catch (UniqueConstraintViolationException $e) {
+            $this->logger->warning('Payment event conflict', [
                 'exception' => $e::class,
                 'message' => $e->getMessage(),
             ]);
