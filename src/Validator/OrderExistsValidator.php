@@ -5,19 +5,18 @@ declare(strict_types=1);
 namespace App\Validator;
 
 use App\Entity\Order;
-use App\Enum\OrderStatus;
 use App\Repository\OrderRepository;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 
-final class OrderPayableValidator extends ConstraintValidator
+final class OrderExistsValidator extends ConstraintValidator
 {
     public function __construct(private readonly OrderRepository $orderRepository)
     {
     }
 
     /**
-     * @param OrderPayable $constraint
+     * @param OrderExists $constraint
      */
     public function validate(mixed $value, Constraint $constraint): void
     {
@@ -26,7 +25,7 @@ final class OrderPayableValidator extends ConstraintValidator
         }
 
         $order = $this->orderRepository->find((int) $value);
-        if ($order instanceof Order && OrderStatus::PENDING === $order->getStatus()) {
+        if ($order instanceof Order) {
             return;
         }
 

@@ -4,17 +4,16 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\Order;
 use App\Entity\PaymentProviderEvent;
 use App\Exception\OrderNotFoundException;
-use App\Exception\OrderNotPayableException;
-use App\Repository\OrderRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 
 class PaymentManager
 {
     public function __construct(
-        private readonly OrderRepository $orderRepo,
         private readonly EntityManagerInterface $em,
     ) {
     }
@@ -27,7 +26,7 @@ class PaymentManager
                 $providerEventId,
                 $payload,
             ): void {
-                $order = $this->orderRepo->find($orderId);
+                $order = $this->em->find(Order::class, $orderId, LockMode::PESSIMISTIC_WRITE);
                 if (null === $order) {
                     throw OrderNotFoundException::withDefaultMsg($orderId);
                 }
@@ -45,10 +44,6 @@ class PaymentManager
                 ));
             });
         } catch (UniqueConstraintViolationException $e) {
-            $order = $this->orderRepo->find($orderId);
-            if ($order->getPaymentProviderEvent()?->getProviderEventId() !== $providerEventId) {
-                throw OrderNotPayableException::withDefaultMsg($order->getStatus());
-            }
         }
     }
 }

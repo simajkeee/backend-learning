@@ -43,9 +43,11 @@ class PaymentProcessingHandler
                 $paymentEvent->providerEventId,
                 $content,
             );
-        } catch (OrderNotFoundException $e) {
-            $this->logger->warning($e->getMessage());
-        } catch (OrderNotPayableException $e) {
+        } catch (OrderNotFoundException|OrderNotPayableException $e) {
+            $this->logger->warning("Can't process the order {$paymentEvent->orderId}", [
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
         } finally {
             $lock->release();
         }

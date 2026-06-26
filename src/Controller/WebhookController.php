@@ -10,6 +10,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DeduplicateStamp;
@@ -42,11 +43,17 @@ class WebhookController extends AbstractController
                 new DeduplicateStamp('dispatch.'.$idempotencyKey),
             ]);
 
-            return $this->json(['processing' => true]);
+            return $this->json(['processing' => true], Response::HTTP_ACCEPTED);
         } catch (\Throwable $e) {
-            $this->logger->error($e->getMessage());
+            $this->logger->error('Payment webhook dispatch failed', [
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
 
-            return $this->json(['processing' => false]);
+            return $this->json(
+                ['processing' => false],
+                Response::HTTP_SERVICE_UNAVAILABLE
+            );
         }
     }
 }

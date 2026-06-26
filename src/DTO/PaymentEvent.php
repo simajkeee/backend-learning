@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\DTO;
 
 use App\Enum\PaymentStatus;
-use App\Validator\OrderPayable;
+use App\Validator\OrderExists;
 use Symfony\Component\Validator\Constraints as Assert;
 
 class PaymentEvent
@@ -15,7 +15,7 @@ class PaymentEvent
 
     #[Assert\NotBlank]
     #[Assert\Positive]
-    #[OrderPayable]
+    #[OrderExists]
     public ?int $orderId = null;
 
     #[Assert\NotBlank]
