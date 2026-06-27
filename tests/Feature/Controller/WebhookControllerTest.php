@@ -13,6 +13,7 @@ use App\Exception\OrderNotPayableException;
 use App\Factory\OrderFactory;
 use App\Repository\PaymentProviderEventRepository;
 use App\Tests\TestCase;
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Monolog\Handler\TestHandler;
@@ -301,7 +302,7 @@ class WebhookControllerTest extends TestCase
 
         $this->assertFalse($logHandler->hasRecords(Level::Warning));
 
-        $connection = self::getContainer()->get(\Doctrine\DBAL\Connection::class);
+        $connection = self::getContainer()->get(Connection::class);
         $eventCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM payment_provider_event');
         $this->assertSame(1, $eventCount);
     }
