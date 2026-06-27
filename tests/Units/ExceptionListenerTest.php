@@ -24,14 +24,14 @@ class ExceptionListenerTest extends TestCase
         $exception = OrderNotFoundException::withDefaultMsg($orderId);
 
         $listener = new ExceptionListener(
-            new ExceptionMapper()
+            new ExceptionMapper(),
         );
 
         $event = new ExceptionEvent(
             $this->createStub(HttpKernelInterface::class),
             new Request(),
             HttpKernelInterface::MAIN_REQUEST,
-            $exception
+            $exception,
         );
 
         $listener($event);
@@ -48,14 +48,14 @@ class ExceptionListenerTest extends TestCase
         $exception = OrderNotFulfillableException::withDefaultMsg(OrderStatus::FULFILLED);
 
         $listener = new ExceptionListener(
-            new ExceptionMapper()
+            new ExceptionMapper(),
         );
 
         $event = new ExceptionEvent(
             $this->createStub(HttpKernelInterface::class),
             new Request(),
             HttpKernelInterface::MAIN_REQUEST,
-            $exception
+            $exception,
         );
 
         $listener($event);
@@ -72,14 +72,14 @@ class ExceptionListenerTest extends TestCase
         $exception = OrderNotPayableException::withDefaultMsg(OrderStatus::PAID);
 
         $listener = new ExceptionListener(
-            new ExceptionMapper()
+            new ExceptionMapper(),
         );
 
         $event = new ExceptionEvent(
             $this->createStub(HttpKernelInterface::class),
             new Request(),
             HttpKernelInterface::MAIN_REQUEST,
-            $exception
+            $exception,
         );
 
         $listener($event);
@@ -96,14 +96,14 @@ class ExceptionListenerTest extends TestCase
         $exception = OrderNotRefundableException::withDefaultMsg(OrderStatus::REFUNDED);
 
         $listener = new ExceptionListener(
-            new ExceptionMapper()
+            new ExceptionMapper(),
         );
 
         $event = new ExceptionEvent(
             $this->createStub(HttpKernelInterface::class),
             new Request(),
             HttpKernelInterface::MAIN_REQUEST,
-            $exception
+            $exception,
         );
 
         $listener($event);
@@ -120,14 +120,14 @@ class ExceptionListenerTest extends TestCase
         $exception = new \Exception('unknown');
 
         $listener = new ExceptionListener(
-            new ExceptionMapper()
+            new ExceptionMapper(),
         );
 
         $event = new ExceptionEvent(
             $this->createStub(HttpKernelInterface::class),
             new Request(),
             HttpKernelInterface::MAIN_REQUEST,
-            $exception
+            $exception,
         );
 
         $listener($event);

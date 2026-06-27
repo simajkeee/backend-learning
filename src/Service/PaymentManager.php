@@ -8,6 +8,7 @@ use App\Entity\Order;
 use App\Entity\PaymentProviderEvent;
 use App\Exception\InvalidPaymentProviderEventForOrder;
 use App\Exception\OrderNotFoundException;
+use App\Repository\OrderRepository;
 use App\Repository\PaymentProviderEventRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -15,7 +16,6 @@ class PaymentManager
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly PaymentProviderEventRepository $eventRepo,
     ) {
     }
 
@@ -26,8 +26,10 @@ class PaymentManager
             $providerEventId,
             $payload,
         ): void {
+            /**
+             * @var OrderRepository $orderRepo
+             */
             $orderRepo = $em->getRepository(Order::class);
-
             $locked = $orderRepo->lockById($orderId);
             if (!$locked) {
                 throw OrderNotFoundException::withDefaultMsg($orderId);
@@ -40,8 +42,11 @@ class PaymentManager
                 return;
             }
 
-            $providerEventEntity = $em->getRepository(PaymentProviderEvent::class)
-                                      ->findOneByProviderEventId($providerEventId);
+            /**
+             * @var PaymentProviderEventRepository $paymentProviderRepo
+             */
+            $paymentProviderRepo = $em->getRepository(PaymentProviderEvent::class);
+            $providerEventEntity = $paymentProviderRepo->findOneByProviderEventId($providerEventId);
             if ($providerEventEntity instanceof PaymentProviderEvent) {
                 throw InvalidPaymentProviderEventForOrder::eventAlreadyBelongsToAnotherOrder(
                     $providerEventId,

@@ -87,7 +87,7 @@ class ReportsControllerTest extends WebTestCase
                 $fulfillment = $order->fulfill();
 
                 $fulfillment->setCreatedAt(
-                    new \DateTimeImmutable(sprintf('2026-06-01 12:%02d:00', $counter))
+                    new \DateTimeImmutable(sprintf('2026-06-01 12:%02d:00', $counter)),
                 );
 
                 ++$counter;

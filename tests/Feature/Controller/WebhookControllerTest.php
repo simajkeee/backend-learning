@@ -8,11 +8,16 @@ use App\DTO\PaymentEvent;
 use App\Entity\Order;
 use App\Entity\PaymentProviderEvent;
 use App\Enum\OrderStatus;
+use App\Exception\InvalidPaymentProviderEventForOrder;
+use App\Exception\OrderNotPayableException;
 use App\Factory\OrderFactory;
 use App\Repository\PaymentProviderEventRepository;
 use App\Tests\TestCase;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Monolog\Handler\TestHandler;
+use Monolog\Level;
+use Monolog\LogRecord;
 use Symfony\Component\HttpFoundation\Response;
 use Zenstruck\Messenger\Test\InteractsWithMessenger;
 use Zenstruck\Messenger\Test\Transport\TestTransport;
@@ -84,14 +89,19 @@ class WebhookControllerTest extends TestCase
         self::getClient()
             ->request('POST', '/webhooks/fake-payment', $payload);
 
-        $this->assertResponseIsSuccessful();
-        $providerEvents = $this->paymentProviderEventRepo->findBy(['providerEventId' => $providerEventId]);
-        $this->assertCount(1, $providerEvents);
+        $this->assertResponseStatusCodeSame(Response::HTTP_ACCEPTED);
 
         self::getClient()
             ->request('POST', '/webhooks/fake-payment', $payload);
-        $providerEvents = $this->paymentProviderEventRepo->findBy(['providerEventId' => $providerEventId]);
-        $this->assertCount(1, $providerEvents);
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_ACCEPTED);
+
+        $this->transport->queue()->assertCount(1);
+
+        $this->transport->processOrFail();
+
+        $providerEvents = $this->paymentProviderEventRepo->findOneByProviderEventId($providerEventId);
+        $this->assertNotNull($providerEvents);
     }
 
     public function testConstraintViolationIsTriggeredForTheSameEventId(): void
@@ -135,7 +145,7 @@ class WebhookControllerTest extends TestCase
         $client->request('POST', '/webhooks/fake-payment', $payload);
         $response = $client->getResponse();
         $this->assertResponseIsUnprocessable();
-        $this->assertStringContainsString('This value should be of type int', $response->getContent());
+        $this->assertStringContainsString('This value should not be blank', $response->getContent());
 
         $payload = [
             'orderId' => 1,
@@ -167,46 +177,16 @@ class WebhookControllerTest extends TestCase
         ];
         $client = self::getClient();
         $client->request('POST', '/webhooks/fake-payment', $payload);
-        $response = $client->getResponse();
 
-        $this->assertResponseStatusCodeSame(404);
-        $this->assertStringContainsString('"order_not_found"', $response->getContent());
+        $this->assertResponseIsUnprocessable();
     }
 
-    public function testOrderFulfilledStatusIsUnprocessable(): void
+    public function testRepeatedPaidWebhookWithDifferentProviderEventIdIsHandled(): void
     {
-        $order = OrderFactory::createWithStatus(OrderStatus::FULFILLED);
-        $payload = [
-            'orderId' => $order->getId(),
-            'providerEventId' => 'evt_123',
-            'status' => 'paid',
-        ];
-        $client = self::getClient();
-        $client->request('POST', '/webhooks/fake-payment', $payload);
-        $response = $client->getResponse();
+        /** @var TestHandler $logHandler */
+        $logHandler = self::getContainer()->get('monolog.handler.test');
+        $logHandler->clear();
 
-        $this->assertResponseStatusCodeSame(409);
-        $this->assertStringContainsString('"order_not_payable"', $response->getContent());
-    }
-
-    public function testOrderRefundedStatusIsUnprocessable(): void
-    {
-        $order = OrderFactory::createWithStatus(OrderStatus::REFUNDED);
-        $payload = [
-            'orderId' => $order->getId(),
-            'providerEventId' => 'evt_123',
-            'status' => 'paid',
-        ];
-        $client = self::getClient();
-        $client->request('POST', '/webhooks/fake-payment', $payload);
-        $response = $client->getResponse();
-
-        $this->assertResponseStatusCodeSame(409);
-        $this->assertStringContainsString('"order_not_payable"', $response->getContent());
-    }
-
-    public function testOrderPaidStatusIsSuccessfulAndIdempotent(): void
-    {
         $order = OrderFactory::createWithStatus(OrderStatus::PENDING);
         $payload = [
             'orderId' => $order->getId(),
@@ -216,44 +196,77 @@ class WebhookControllerTest extends TestCase
 
         $client = self::getClient();
         $client->request('POST', '/webhooks/fake-payment', $payload);
-        $response = $client->getResponse();
+        $response = $this->jsonResponse();
 
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertTrue(json_decode($response->getContent())->paid);
-
-        $client->request('POST', '/webhooks/fake-payment', $payload);
-        $response = $client->getResponse();
-
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertTrue(json_decode($response->getContent())->paid);
-    }
-
-    public function testOrderPaidStatusWithDifferentEventIdsReturn409CodeWithErrorCode(): void
-    {
-        $order = OrderFactory::createWithStatus(OrderStatus::PENDING);
-        $payload = [
-            'orderId' => $order->getId(),
-            'providerEventId' => 'evt_123',
-            'status' => 'paid',
-        ];
-
-        $client = self::getClient();
-        $client->request('POST', '/webhooks/fake-payment', $payload);
-        $response = $client->getResponse();
-
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertTrue(json_decode($response->getContent())->paid);
+        $this->assertResponseStatusCodeSame(Response::HTTP_ACCEPTED);
+        $this->assertTrue($response['processing']);
+        $this->transport->queue()->assertCount(1);
+        $this->transport->processOrFail();
 
         $payload['providerEventId'] = 'changed_evt_123';
         $client->request('POST', '/webhooks/fake-payment', $payload);
+        $this->assertResponseStatusCodeSame(Response::HTTP_ACCEPTED);
+        $this->transport->queue()->assertCount(1);
 
-        $this->assertResponseStatusCodeSame(409);
-        $this->assertArraysAreEqual(
-            [
-                'success' => false,
-                'error_code' => 'order_not_payable',
-            ],
-            $this->jsonResponse(),
+        $this->transport->processOrFail();
+
+        $this->transport->acknowledged()->assertCount(2);
+        $this->transport->rejected()->assertCount(0);
+
+        $this->assertTrue(
+            $logHandler->hasRecordThatPasses(
+                static function (LogRecord $record) use ($order): bool {
+                    return str_contains($record->message, "Can't process the order {$order->getId()}")
+                        && ($record->context['exception'] ?? null) === OrderNotPayableException::class;
+                },
+                Level::Warning,
+            ),
+            'Expected warning log for invalid provider event id.',
+        );
+    }
+
+    public function testRepeatedPaidWebhookWithDifferentOrderIsHandled(): void
+    {
+        /** @var TestHandler $logHandler */
+        $logHandler = self::getContainer()->get('monolog.handler.test');
+        $logHandler->clear();
+
+        $order = OrderFactory::createWithStatus(OrderStatus::PENDING);
+        $payload = [
+            'orderId' => $order->getId(),
+            'providerEventId' => 'evt_123',
+            'status' => 'paid',
+        ];
+
+        $client = self::getClient();
+        $client->request('POST', '/webhooks/fake-payment', $payload);
+        $response = $this->jsonResponse();
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_ACCEPTED);
+        $this->assertTrue($response['processing']);
+        $this->transport->queue()->assertCount(1);
+        $this->transport->processOrFail();
+
+        $order2 = OrderFactory::createWithStatus(OrderStatus::PENDING);
+        $payload['orderId'] = $order2->getId();
+        $client->request('POST', '/webhooks/fake-payment', $payload);
+        $this->assertResponseStatusCodeSame(Response::HTTP_ACCEPTED);
+        $this->transport->queue()->assertCount(1);
+
+        $this->transport->processOrFail();
+
+        $this->transport->acknowledged()->assertCount(2);
+        $this->transport->rejected()->assertCount(0);
+
+        $this->assertTrue(
+            $logHandler->hasRecordThatPasses(
+                static function (LogRecord $record) use ($order2): bool {
+                    return str_contains($record->message, "Can't process the order {$order2->getId()}")
+                        && ($record->context['exception'] ?? null) === InvalidPaymentProviderEventForOrder::class;
+                },
+                Level::Warning,
+            ),
+            'Expected warning log for invalid provider event id.',
         );
     }
 }

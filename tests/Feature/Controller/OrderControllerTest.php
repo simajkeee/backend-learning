@@ -170,7 +170,7 @@ class OrderControllerTest extends TestCase
                 'success' => false,
                 'error_code' => 'order_not_fulfillable',
             ],
-            $this->jsonResponse()
+            $this->jsonResponse(),
         );
     }
 
@@ -323,7 +323,7 @@ class OrderControllerTest extends TestCase
                 'success' => false,
                 'error_code' => 'order_not_fulfillable',
             ],
-            $this->jsonResponse()
+            $this->jsonResponse(),
         );
     }
 
@@ -411,7 +411,7 @@ class OrderControllerTest extends TestCase
                 'success' => false,
                 'error_code' => 'order_not_fulfillable',
             ],
-            $this->jsonResponse()
+            $this->jsonResponse(),
         );
 
         $fulfillmentRepo = self::getContainer()->get(OrderFulfillmentRepository::class);
@@ -432,7 +432,7 @@ class OrderControllerTest extends TestCase
                 'success' => false,
                 'error_code' => 'order_not_fulfillable',
             ],
-            $this->jsonResponse()
+            $this->jsonResponse(),
         );
         $orderFulfillmentRepo = self::getContainer()->get(OrderFulfillmentRepository::class);
         $fulfillments = $orderFulfillmentRepo->findAll();
@@ -454,7 +454,7 @@ class OrderControllerTest extends TestCase
                 'success' => false,
                 'error_code' => 'order_not_fulfillable',
             ],
-            $this->jsonResponse()
+            $this->jsonResponse(),
         );
         $orderFulfillmentRepo = self::getContainer()->get(OrderFulfillmentRepository::class);
         $fulfillments = $orderFulfillmentRepo->findAll();
