@@ -300,5 +300,9 @@ class WebhookControllerTest extends TestCase
         $this->transport->rejected()->assertCount(0);
 
         $this->assertFalse($logHandler->hasRecords(Level::Warning));
+
+        $connection = self::getContainer()->get(\Doctrine\DBAL\Connection::class);
+        $eventCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM payment_provider_event');
+        $this->assertSame(1, $eventCount);
     }
 }
