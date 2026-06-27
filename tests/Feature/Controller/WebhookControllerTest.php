@@ -269,4 +269,36 @@ class WebhookControllerTest extends TestCase
             'Expected warning log for invalid provider event id.',
         );
     }
+
+    public function testRepeatedPaidWebhookWithSameDataIsIdempotent(): void
+    {
+        /** @var TestHandler $logHandler */
+        $logHandler = self::getContainer()->get('monolog.handler.test');
+        $logHandler->clear();
+
+        $order = OrderFactory::createWithStatus(OrderStatus::PENDING);
+        $payload = [
+            'orderId' => $order->getId(),
+            'providerEventId' => 'evt_123',
+            'status' => 'paid',
+        ];
+
+        $client = self::getClient();
+        $client->request('POST', '/webhooks/fake-payment', $payload);
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_ACCEPTED);
+        $this->transport->queue()->assertCount(1);
+        $this->transport->processOrFail();
+
+        $client->request('POST', '/webhooks/fake-payment', $payload);
+        $this->assertResponseStatusCodeSame(Response::HTTP_ACCEPTED);
+        $this->transport->queue()->assertCount(1);
+
+        $this->transport->processOrFail();
+
+        $this->transport->acknowledged()->assertCount(2);
+        $this->transport->rejected()->assertCount(0);
+
+        $this->assertFalse($logHandler->hasRecords(Level::Warning));
+    }
 }
