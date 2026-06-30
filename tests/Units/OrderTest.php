@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\Tests\Units;
 
+use App\Entity\Order;
 use App\Entity\PaymentProviderEvent;
+use App\Enum\Currency;
 use App\Enum\OrderStatus;
 use App\Exception\OrderNotFulfillableException;
 use App\Exception\OrderNotPayableException;
 use App\Exception\OrderNotRefundableException;
 use App\Exception\OrderPaymentProviderEventException;
 use App\Factory\OrderFactory;
+use App\Factory\ProductFactory;
 use PHPUnit\Framework\TestCase;
 
 class OrderTest extends TestCase
@@ -77,5 +80,15 @@ class OrderTest extends TestCase
         $this->expectException(OrderPaymentProviderEventException::class);
         $this->expectExceptionMessage("This event can't be attached to the order because it references another order entry");
         $order->attachPaymentProviderEvent($paymentProviderEvent2);
+    }
+
+    public function testOrderCreationSetsTotalPriceAndCurrency()
+    {
+        $product = ProductFactory::new()->create();
+        $order = new Order($product);
+
+        $this->assertIsInt($order->getTotal());
+        $this->assertSame($product->getPrice() ,$order->getTotal());
+        $this->assertTrue($order->getCurrency() instanceof Currency);
     }
 }

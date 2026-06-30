@@ -27,8 +27,8 @@ class Product
     #[Gedmo\Slug(fields: ['name'])]
     private ?string $slug = null; // @phpstan-ignore property.unusedType
 
-    #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2)]
-    private string $price;
+    #[ORM\Column(type: Types::INTEGER)]
+    private int $price;
 
     /**
      * @var Collection<int, Order>
@@ -39,7 +39,7 @@ class Product
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
-    public function __construct(string $name, string $price)
+    public function __construct(string $name, int $price)
     {
         $this->name = $name;
         $this->price = $price;
@@ -69,7 +69,7 @@ class Product
         return $this->slug;
     }
 
-    public function getPrice(): string
+    public function getPrice(): int
     {
         return $this->price;
     }

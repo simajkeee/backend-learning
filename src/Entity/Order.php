@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\Currency;
 use App\Enum\OrderStatus;
 use App\Exception\OrderNotFulfillableException;
 use App\Exception\OrderNotPayableException;
@@ -44,9 +45,17 @@ class Order
     #[ORM\OneToOne(mappedBy: 'relatedOrder', cascade: ['persist', 'remove'])]
     private ?PaymentProviderEvent $paymentProviderEvent = null;
 
+    #[ORM\Column(type: Types::INTEGER)]
+    private int $total;
+
+    #[ORM\Column(type: Types::STRING, length: 3, enumType: Currency::class)]
+    private Currency $currency;
+
     public function __construct(Product $product)
     {
         $this->product = $product;
+        $this->total = $product->getPrice();
+        $this->currency = Currency::USD;
     }
 
     public function getId(): ?int
@@ -162,5 +171,15 @@ class Order
         }
 
         $this->paymentProviderEvent = $paymentProviderEvent;
+    }
+
+    public function getTotal(): int
+    {
+        return $this->total;
+    }
+
+    public function getCurrency(): Currency
+    {
+        return $this->currency;
     }
 }
