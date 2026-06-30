@@ -37,6 +37,10 @@ class WebhookController extends AbstractController
             );
 
             $this->bus->dispatch(new PaymentProcessing(
+                $paymentEvent->providerEventId,
+                $paymentEvent->orderId,
+                $paymentEvent->total,
+                $paymentEvent->currency,
                 $this->serializer->serialize($paymentEvent, 'json'),
                 $idempotencyKey,
             ), [

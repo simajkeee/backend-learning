@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\MessageHandler;
 
-use App\DTO\PaymentEvent;
 use App\Exception\InvalidPaymentProviderEventForOrder;
 use App\Exception\OrderNotFoundException;
 use App\Exception\OrderNotPayableException;
 use App\Message\PaymentProcessing;
 use App\Service\PaymentManager;
-use App\Service\Serializer;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Lock\LockFactory;
@@ -23,29 +21,27 @@ class PaymentProcessingHandler
     public function __construct(
         private readonly LockFactory $lockFactory,
         private readonly PaymentManager $paymentService,
-        private readonly Serializer $serializer,
         private readonly LoggerInterface $logger,
     ) {
     }
 
     public function __invoke(PaymentProcessing $message): void
     {
-        $content = $message->getContent();
-        $paymentEvent = $this->serializer->deserializeJson($content, PaymentEvent::class);
-
         $lock = $this->lockFactory->createLock('handler.'.$message->getIdempotencyKey(), 120);
         if (!$lock->acquire()) {
-            throw new RecoverableMessageHandlingException(sprintf('Order %d is already being processed.', $paymentEvent->orderId));
+            throw new RecoverableMessageHandlingException(sprintf('Order %d is already being processed.', $message->getOrderId()));
         }
 
         try {
             $this->paymentService->processPaid(
-                $paymentEvent->orderId,
-                $paymentEvent->providerEventId,
-                $content,
+                $message->getProviderEventId(),
+                $message->getOrderId(),
+                $message->getTotal(),
+                $message->getCurrency(),
+                $message->getContent(),
             );
         } catch (OrderNotFoundException|OrderNotPayableException|InvalidPaymentProviderEventForOrder $e) {
-            $this->logger->warning("Can't process the order {$paymentEvent->orderId}", [
+            $this->logger->warning("Can't process the order {$message->getOrderId()}", [
                 'exception' => $e::class,
                 'message' => $e->getMessage(),
             ]);

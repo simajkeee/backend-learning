@@ -19,11 +19,11 @@ class PaymentManager
     ) {
     }
 
-    public function processPaid(int $orderId, string $providerEventId, string $payload): void
+    public function processPaid(string $providerEventId, int $orderId, int $total, string $currency, string $payload): void
     {
         $this->em->wrapInTransaction(static function (EntityManagerInterface $em) use (
-            $orderId,
             $providerEventId,
+            $orderId,
             $payload,
         ): void {
             /**
