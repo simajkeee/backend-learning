@@ -15,7 +15,7 @@ class ProductSlugTest extends KernelTestCase
         self::bootKernel();
         $em = self::getContainer()->get(EntityManagerInterface::class);
 
-        $product = new Product('Test Product', '10.00');
+        $product = new Product('Test Product', 1000);
 
         $em->persist($product);
         $em->flush();

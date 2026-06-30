@@ -60,11 +60,18 @@ final class OrderFactory extends PersistentObjectFactory
             });
     }
 
+    public function withProductPrice(int $price): self
+    {
+        return $this->with([
+            'product' => ProductFactory::new(['price' => $price]),
+        ]);
+    }
+
     #[\Override]
     protected function defaults(): array|callable
     {
         return [
-            'product' => ProductFactory::new(),
+            'product' => ProductFactory::new(['price' => 1]),
             'createdAt' => \DateTimeImmutable::createFromMutable(self::faker()->dateTime()),
             'updatedAt' => \DateTimeImmutable::createFromMutable(self::faker()->dateTime()),
         ];

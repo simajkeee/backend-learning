@@ -23,7 +23,7 @@ final class ProductFactory extends PersistentObjectFactory
     {
         return [
             'name' => self::faker()->text(100),
-            'price' => (string) random_int(10, 100),
+            'price' => random_int(10000, 100000),
             'description' => self::faker()->text(255),
         ];
     }

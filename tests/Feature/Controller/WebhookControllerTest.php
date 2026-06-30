@@ -7,6 +7,7 @@ namespace App\Tests\Feature\Controller;
 use App\DTO\PaymentEvent;
 use App\Entity\Order;
 use App\Entity\PaymentProviderEvent;
+use App\Enum\Currency;
 use App\Enum\OrderStatus;
 use App\Exception\InvalidPaymentProviderEventForOrder;
 use App\Exception\OrderNotPayableException;
@@ -43,12 +44,17 @@ class WebhookControllerTest extends TestCase
 
     public function testOrderStatusChangedToPaidAndPaymentProviderEventIsCreated(): void
     {
-        $order = OrderFactory::new()->create();
+        $price = 10555;
         $providerEventId = 'evt_123';
+        $order = OrderFactory::new()
+                             ->withProductPrice($price)
+                             ->create();
         $payload = [
             'providerEventId' => $providerEventId,
             'orderId' => $order->getId(),
             'status' => 'paid',
+            'total' => $price,
+            'currency' => Currency::USD->value,
         ];
 
         $this->transport->queue()->assertEmpty();
@@ -74,17 +80,24 @@ class WebhookControllerTest extends TestCase
         $paymentEvent->providerEventId = $payload['providerEventId'];
         $paymentEvent->orderId = $payload['orderId'];
         $paymentEvent->status = $payload['status'];
+        $paymentEvent->total = $payload['total'];
+        $paymentEvent->currency = $payload['currency'];
         $this->assertSame(json_encode($paymentEvent), $providerEvent->getPayload());
     }
 
     public function testDuplicateEventIsSafeAndDoesntCreateDoublePaymentProviderEvent(): void
     {
-        $order = OrderFactory::new()->create();
+        $price = 10555;
         $providerEventId = 'evt_123';
+        $order = OrderFactory::new()
+                             ->withProductPrice($price)
+                             ->create();
         $payload = [
             'providerEventId' => $providerEventId,
             'orderId' => $order->getId(),
             'status' => 'paid',
+            'total' => $price,
+            'currency' => Currency::USD->value,
         ];
 
         self::getClient()
@@ -175,6 +188,8 @@ class WebhookControllerTest extends TestCase
             'orderId' => 1,
             'providerEventId' => 'evt_123',
             'status' => 'paid',
+            'total' => 100,
+            'currency' => Currency::USD->value,
         ];
         $client = self::getClient();
         $client->request('POST', '/webhooks/fake-payment', $payload);
@@ -188,11 +203,14 @@ class WebhookControllerTest extends TestCase
         $logHandler = self::getContainer()->get('monolog.handler.test');
         $logHandler->clear();
 
-        $order = OrderFactory::createWithStatus(OrderStatus::PENDING);
+        $price = 10555;
+        $order = OrderFactory::new()->withProductPrice($price)->create();
         $payload = [
             'orderId' => $order->getId(),
             'providerEventId' => 'evt_123',
             'status' => 'paid',
+            'total' => $price,
+            'currency' => Currency::USD->value,
         ];
 
         $client = self::getClient();
@@ -232,11 +250,14 @@ class WebhookControllerTest extends TestCase
         $logHandler = self::getContainer()->get('monolog.handler.test');
         $logHandler->clear();
 
-        $order = OrderFactory::createWithStatus(OrderStatus::PENDING);
+        $price = 10555;
+        $order = OrderFactory::new()->withProductPrice($price)->create();
         $payload = [
             'orderId' => $order->getId(),
             'providerEventId' => 'evt_123',
             'status' => 'paid',
+            'total' => $price,
+            'currency' => Currency::USD->value,
         ];
 
         $client = self::getClient();
@@ -277,11 +298,17 @@ class WebhookControllerTest extends TestCase
         $logHandler = self::getContainer()->get('monolog.handler.test');
         $logHandler->clear();
 
-        $order = OrderFactory::createWithStatus(OrderStatus::PENDING);
+        $price = 10555;
+        $order = OrderFactory::new()
+                    ->withProductPrice($price)
+                    ->create();
+
         $payload = [
             'orderId' => $order->getId(),
             'providerEventId' => 'evt_123',
             'status' => 'paid',
+            'total' => $price,
+            'currency' => Currency::USD->value,
         ];
 
         $client = self::getClient();

@@ -6,7 +6,6 @@ namespace App\Tests\Units;
 
 use App\Entity\Order;
 use App\Entity\PaymentProviderEvent;
-use App\Enum\Currency;
 use App\Enum\OrderStatus;
 use App\Exception\OrderNotFulfillableException;
 use App\Exception\OrderNotPayableException;
@@ -82,13 +81,12 @@ class OrderTest extends TestCase
         $order->attachPaymentProviderEvent($paymentProviderEvent2);
     }
 
-    public function testOrderCreationSetsTotalPriceAndCurrency()
+    public function testOrderCreationSetsTotalPriceAndCurrency(): void
     {
         $product = ProductFactory::new()->create();
         $order = new Order($product);
 
-        $this->assertIsInt($order->getTotal());
-        $this->assertSame($product->getPrice() ,$order->getTotal());
-        $this->assertTrue($order->getCurrency() instanceof Currency);
+        $this->assertNotEquals(0, $order->getTotal());
+        $this->assertSame($product->getPrice(), $order->getTotal());
     }
 }

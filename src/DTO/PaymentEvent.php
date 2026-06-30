@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTO;
 
+use App\Enum\Currency;
 use App\Enum\PaymentStatus;
 use App\Validator\OrderExists;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -21,4 +22,12 @@ class PaymentEvent
     #[Assert\NotBlank]
     #[Assert\Choice(callback: [PaymentStatus::class, 'values'])]
     public string $status = '';
+
+    #[Assert\NotBlank]
+    #[Assert\Positive]
+    public ?int $total = null;
+
+    #[Assert\NotBlank]
+    #[Assert\Choice(callback: [Currency::class, 'values'])]
+    public ?string $currency = null;
 }
