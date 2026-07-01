@@ -40,7 +40,12 @@ class PaymentProcessingHandler
                 $message->getCurrency(),
                 $message->getContent(),
             );
-        } catch (OrderNotFoundException|OrderNotPayableException|InvalidPaymentProviderEventForOrder $e) {
+        } catch (InvalidPaymentProviderEventForOrder $e) {
+            $this->logger->error("Payment provider payload mismatch {$message->getOrderId()}", [
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
+        } catch (OrderNotFoundException|OrderNotPayableException $e) {
             $this->logger->warning("Can't process the order {$message->getOrderId()}", [
                 'exception' => $e::class,
                 'message' => $e->getMessage(),

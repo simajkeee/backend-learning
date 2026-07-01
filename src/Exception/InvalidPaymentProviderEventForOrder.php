@@ -20,4 +20,34 @@ class InvalidPaymentProviderEventForOrder extends \LogicException
             ),
         );
     }
+
+    public static function eventTotalNotEqualsOrderTotal(
+        string $providerEventId,
+        int $total,
+        int $orderId,
+    ): self {
+        return new self(
+            sprintf(
+                'Provider event "%s" has different total amount(%d) than order snapshot %d',
+                $providerEventId,
+                $total,
+                $orderId,
+            ),
+        );
+    }
+
+    public static function eventCurrencyNotEqualsOrderCurrency(
+        string $providerEventId,
+        string $currency,
+        int $orderId,
+    ): self {
+        return new self(
+            sprintf(
+                'Provider event "%s" has different currency(%s) than order snapshot %d',
+                $providerEventId,
+                $currency,
+                $orderId,
+            ),
+        );
+    }
 }

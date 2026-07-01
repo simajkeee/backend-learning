@@ -11,6 +11,8 @@ use App\Exception\OrderNotPayableException;
 use App\Exception\OrderNotRefundableException;
 use App\Exception\OrderPaymentProviderEventException;
 use App\Repository\OrderRepository;
+use App\ValueObject\Currency as CurrencyValue;
+use App\ValueObject\Money;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -181,5 +183,15 @@ class Order
     public function getCurrency(): Currency
     {
         return $this->currency;
+    }
+
+    public function hasEqualTotalTo(Money $money): bool
+    {
+        return Money::fromInt($this->total)->isEqual($money);
+    }
+
+    public function hasSameCurrencyAs(CurrencyValue $currency): bool
+    {
+        return CurrencyValue::fromEnum($this->currency)->isSame($currency);
     }
 }

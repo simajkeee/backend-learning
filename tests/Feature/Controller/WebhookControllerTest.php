@@ -283,10 +283,10 @@ class WebhookControllerTest extends TestCase
         $this->assertTrue(
             $logHandler->hasRecordThatPasses(
                 static function (LogRecord $record) use ($order2): bool {
-                    return str_contains($record->message, "Can't process the order {$order2->getId()}")
+                    return str_contains($record->message, "Payment provider payload mismatch {$order2->getId()}")
                         && ($record->context['exception'] ?? null) === InvalidPaymentProviderEventForOrder::class;
                 },
-                Level::Warning,
+                Level::Error,
             ),
             'Expected warning log for invalid provider event id.',
         );
