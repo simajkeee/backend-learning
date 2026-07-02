@@ -18,7 +18,7 @@ class OrderRepository extends ServiceEntityRepository
         parent::__construct($registry, Order::class);
     }
 
-    public function findAndLockById(int $orderId): ?Order
+    public function findByIdForUpdate(int $orderId): ?Order
     {
         $lockedOrderId = $this->getEntityManager()
                               ->getConnection()
@@ -27,10 +27,6 @@ class OrderRepository extends ServiceEntityRepository
                                   ['id' => $orderId],
                               );
 
-        if (false === $lockedOrderId) {
-            return null;
-        }
-
-        return $this->find($orderId);
+        return $lockedOrderId ? $this->find($orderId) : null;
     }
 }

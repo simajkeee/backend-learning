@@ -13,6 +13,7 @@ use App\Service\PaymentManager;
 use App\Tests\TestCase;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class PaymentManagerTest extends TestCase
 {
@@ -21,6 +22,8 @@ class PaymentManagerTest extends TestCase
     private MockObject $orderRepo;
 
     private MockObject $paymentProviderEventRepo;
+
+    private MockObject $dispatcher;
 
     private PaymentManager $paymentManager;
 
@@ -36,11 +39,13 @@ class PaymentManagerTest extends TestCase
 
         $this->orderRepo = $this->createMock(OrderRepository::class);
         $this->paymentProviderEventRepo = $this->createMock(PaymentProviderEventRepository::class);
+        $this->dispatcher = $this->createMock(EventDispatcherInterface::class);
 
         $this->paymentManager = new PaymentManager(
             $this->em,
             $this->orderRepo,
             $this->paymentProviderEventRepo,
+            $this->dispatcher,
         );
     }
 
@@ -55,7 +60,7 @@ class PaymentManagerTest extends TestCase
 
         $this->orderRepo
             ->expects($this->once())
-            ->method('findAndLockById')
+            ->method('findByIdForUpdate')
             ->with($orderId)
             ->willReturn($order);
 
@@ -67,16 +72,26 @@ class PaymentManagerTest extends TestCase
             ->expects($this->never())
             ->method('persist');
 
-        $this->expectException(InvalidPaymentProviderEventForOrder::class);
-        $this->expectExceptionMessage(sprintf(
-            'Provider event "%s" has different total amount(%d) than order snapshot %d',
-            $providerEventId,
-            $total,
-            $orderId,
-        ));
-        $this->paymentManager
-            ->processPaid($providerEventId, $orderId, $total, $currency, '{}');
-        $this->assertFalse($order->isPaid());
+        $this->dispatcher
+            ->expects($this->once())
+            ->method('dispatch');
+
+        try {
+            $this->paymentManager
+                ->processPaid($providerEventId, $orderId, $total, $currency, '{}');
+        } catch (InvalidPaymentProviderEventForOrder $e) {
+            $this->assertSame(sprintf(
+                'Provider event "%s" has different total amount(%d) than order snapshot %d',
+                $providerEventId,
+                $total,
+                $orderId,
+            ), $e->getMessage());
+            $this->assertFalse($order->isPaid());
+
+            return;
+        }
+
+        $this->fail('InvalidPaymentProviderEventForOrder was not thrown');
     }
 
     public function testMismatchedCurrencyThrowsExceptionAndDoesntChangeOrderStatus(): void
@@ -90,7 +105,7 @@ class PaymentManagerTest extends TestCase
 
         $this->orderRepo
             ->expects($this->once())
-            ->method('findAndLockById')
+            ->method('findByIdForUpdate')
             ->with($orderId)
             ->willReturn($order);
 
@@ -102,16 +117,26 @@ class PaymentManagerTest extends TestCase
             ->expects($this->never())
             ->method('persist');
 
-        $this->expectException(InvalidPaymentProviderEventForOrder::class);
-        $this->expectExceptionMessage(sprintf(
-            'Provider event "%s" has different currency(%s) than order snapshot %d',
-            $providerEventId,
-            $currency,
-            $orderId,
-        ));
-        $this->paymentManager
-            ->processPaid($providerEventId, $orderId, $total, $currency, '{}');
-        $this->assertFalse($order->isPaid());
+        $this->dispatcher
+            ->expects($this->once())
+            ->method('dispatch');
+
+        try {
+            $this->paymentManager
+                ->processPaid($providerEventId, $orderId, $total, $currency, '{}');
+        } catch (InvalidPaymentProviderEventForOrder $e) {
+            $this->assertSame(sprintf(
+                'Provider event "%s" has different currency(%s) than order snapshot %d',
+                $providerEventId,
+                $currency,
+                $orderId,
+            ), $e->getMessage());
+            $this->assertFalse($order->isPaid());
+
+            return;
+        }
+
+        $this->fail('InvalidPaymentProviderEventForOrder was not thrown');
     }
 
     public function testMatchedCurrencyAndTotalChangeOrderStatusAndTriggerPersistCall(): void
@@ -125,7 +150,7 @@ class PaymentManagerTest extends TestCase
 
         $this->orderRepo
             ->expects($this->once())
-            ->method('findAndLockById')
+            ->method('findByIdForUpdate')
             ->with($orderId)
             ->willReturn($order);
 
@@ -136,6 +161,10 @@ class PaymentManagerTest extends TestCase
         $this->em
             ->expects($this->once())
             ->method('persist');
+
+        $this->dispatcher
+            ->expects($this->never())
+            ->method('dispatch');
 
         $this->paymentManager
             ->processPaid($providerEventId, $orderId, $total, $currency, '{}');
