@@ -6,7 +6,8 @@ namespace Units;
 
 use App\Entity\Order;
 use App\Entity\Product;
-use App\Exception\InvalidPaymentProviderEventForOrder;
+use App\Exception\InvalidOrderCurrency;
+use App\Exception\InvalidOrderTotal;
 use App\Repository\OrderRepository;
 use App\Repository\PaymentProviderEventRepository;
 use App\Service\PaymentManager;
@@ -79,7 +80,7 @@ class PaymentManagerTest extends TestCase
         try {
             $this->paymentManager
                 ->processPaid($providerEventId, $orderId, $total, $currency, '{}');
-        } catch (InvalidPaymentProviderEventForOrder $e) {
+        } catch (InvalidOrderTotal $e) {
             $this->assertSame(sprintf(
                 'Provider event "%s" has different total amount(%d) than order snapshot %d',
                 $providerEventId,
@@ -124,7 +125,7 @@ class PaymentManagerTest extends TestCase
         try {
             $this->paymentManager
                 ->processPaid($providerEventId, $orderId, $total, $currency, '{}');
-        } catch (InvalidPaymentProviderEventForOrder $e) {
+        } catch (InvalidOrderCurrency $e) {
             $this->assertSame(sprintf(
                 'Provider event "%s" has different currency(%s) than order snapshot %d',
                 $providerEventId,

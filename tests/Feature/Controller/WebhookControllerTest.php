@@ -269,7 +269,7 @@ class WebhookControllerTest extends TestCase
         $this->transport->queue()->assertCount(1);
         $this->transport->processOrFail();
 
-        $order2 = OrderFactory::createWithStatus(OrderStatus::PENDING);
+        $order2 = OrderFactory::new()->withProductPrice($price)->create();
         $payload['orderId'] = $order2->getId();
         $client->request('POST', '/webhooks/fake-payment', $payload);
         $this->assertResponseStatusCodeSame(Response::HTTP_ACCEPTED);
@@ -288,7 +288,7 @@ class WebhookControllerTest extends TestCase
                 },
                 Level::Error,
             ),
-            'Expected warning log for invalid provider event id.',
+            'Expected error log for invalid provider event id.',
         );
     }
 

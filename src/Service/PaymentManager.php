@@ -8,6 +8,8 @@ use App\DTO\PaymentMismatchDetails;
 use App\Entity\Order;
 use App\Entity\PaymentProviderEvent;
 use App\Event\PaymentMismatchDetectedEvent;
+use App\Exception\InvalidOrderCurrency;
+use App\Exception\InvalidOrderTotal;
 use App\Exception\InvalidPaymentProviderEventForOrder;
 use App\Exception\OrderNotFoundException;
 use App\Repository\OrderRepository;
@@ -62,7 +64,7 @@ class PaymentManager
                     $payload,
                 ));
             });
-        } catch (InvalidPaymentProviderEventForOrder $e) {
+        } catch (InvalidOrderTotal|InvalidOrderCurrency $e) {
             $paymentMismatchDetails = new PaymentMismatchDetails(
                 $providerEventId,
                 $orderId,
@@ -82,7 +84,7 @@ class PaymentManager
     private function validateTotal(Order $order, string $providerEventId, int $total, int $orderId): void
     {
         if (!$order->hasEqualTotalTo(Money::fromInt($total))) {
-            throw InvalidPaymentProviderEventForOrder::eventTotalNotEqualsOrderTotal(
+            throw InvalidOrderTotal::forOrder(
                 $providerEventId,
                 $total,
                 $orderId,
@@ -93,7 +95,7 @@ class PaymentManager
     private function validateCurrency(Order $order, string $providerEventId, string $currency, int $orderId): void
     {
         if (!$order->hasSameCurrencyAs(Currency::fromString($currency))) {
-            throw InvalidPaymentProviderEventForOrder::eventCurrencyNotEqualsOrderCurrency(
+            throw InvalidOrderCurrency::forOrder(
                 $providerEventId,
                 $currency,
                 $orderId,

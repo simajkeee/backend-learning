@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\MessageHandler;
 
+use App\Exception\InvalidOrderCurrency;
+use App\Exception\InvalidOrderTotal;
 use App\Exception\InvalidPaymentProviderEventForOrder;
 use App\Exception\OrderNotFoundException;
 use App\Exception\OrderNotPayableException;
@@ -40,7 +42,7 @@ class PaymentProcessingHandler
                 $message->getCurrency(),
                 $message->getContent(),
             );
-        } catch (InvalidPaymentProviderEventForOrder $e) {
+        } catch (InvalidPaymentProviderEventForOrder|InvalidOrderCurrency|InvalidOrderTotal $e) {
             $this->logger->error("Payment provider payload mismatch {$message->getOrderId()}", [
                 'exception' => $e::class,
                 'message' => $e->getMessage(),
